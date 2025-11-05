@@ -10,7 +10,7 @@ class LLMClient(ABC):
     def generate(self, 
                  messages: List[Dict[str, str]], 
                  temperature: float = 0.7,
-                 max_tokens: Optional[int] = None) -> str:
+                 max_tokens: Optional[int] = 8092) -> str:
         """Generate a response from the LLM."""
         pass
 
@@ -23,16 +23,17 @@ class OpenAIClient(LLMClient):
     
     def generate(self, 
                  messages: List[Dict[str, str]], 
-                 temperature: float = 0.7,
-                 max_tokens: Optional[int] = None) -> str:
+                 temperature: float = 1.0,
+                 max_tokens: Optional[int] = 8092) -> str:
         """Generate a response using OpenAI API."""
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_completion_tokens=max_tokens
             )
+
             return response.choices[0].message.content
         except Exception as e:
             raise RuntimeError(f"OpenAI API error: {str(e)}")
@@ -47,7 +48,7 @@ class MockLLMClient(LLMClient):
     def generate(self, 
                  messages: List[Dict[str, str]], 
                  temperature: float = 0.7,
-                 max_tokens: Optional[int] = None) -> str:
+                 max_tokens: Optional[int] = 8092) -> str:
         """Return a mock response."""
         response = self.responses[self.call_count % len(self.responses)]
         self.call_count += 1

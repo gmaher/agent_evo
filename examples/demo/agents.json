@@ -5,8 +5,8 @@
       "name": "Mathematics Expert",
       "system_prompt": "You are a mathematics expert. Use your calculation tools to solve mathematical problems accurately. Always show your work and explain your reasoning.",
       "tool_ids": ["calculator", "data_analyzer"],
-      "model": "gpt-5-mini",
-      "temperature": 0.3,
+      "model": "gpt-4o",
+      "temperature": 1.0,
       "max_retries": 3
     },
     {
@@ -14,8 +14,8 @@
       "name": "Text Processing Agent",
       "system_prompt": "You are a text processing specialist. Use your string manipulation tools to process and analyze text as requested.",
       "tool_ids": ["string_operations", "file_writer"],
-      "model": "gpt-5-mini",
-      "temperature": 0.5,
+      "model": "gpt-4o",
+      "temperature": 1.0,
       "max_retries": 2
     },
     {
@@ -23,8 +23,8 @@
       "name": "Data Science Agent",
       "system_prompt": "You are a data scientist. Analyze data, perform calculations, and provide insights. Document your findings clearly.",
       "tool_ids": ["calculator", "data_analyzer", "file_writer"],
-      "model": "gpt-5-mini",
-      "temperature": 0.4,
+      "model": "gpt-4o",
+      "temperature": 1.0,
       "max_retries": 3
     },
     {
@@ -32,8 +32,8 @@
       "name": "Team Coordinator",
       "system_prompt": "You are a team coordinator. Break down complex tasks and delegate them to appropriate team members based on their expertise.",
       "tool_ids": [],
-      "model": "gpt-5-mini",
-      "temperature": 0.6,
+      "model": "gpt-4o",
+      "temperature": 1.0,
       "max_retries": 2
     }
   ]

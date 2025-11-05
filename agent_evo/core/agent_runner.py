@@ -57,11 +57,12 @@ Available tools:
         )
         
         # Initialize conversation
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": task}
-        ]
+        messages = [{"role": "system", "content": system_prompt} ]
         
+        messages.append({"role": "user", "content": task})
+
+        print(f"SYSTEM:\n{system_prompt}\n\nUSER:\n{task}")
+
         history = []
         iteration = 0
         
@@ -73,7 +74,7 @@ Available tools:
                 messages=messages,
                 temperature=agent.temperature
             )
-            
+            print(f"ASSISTANT ({agent.name}):\n{response}")
             # Parse response for tool calls
             cleaned_response, tool_calls = self.parser.parse_response(response)
             
@@ -131,6 +132,8 @@ Available tools:
             
             # Add tool results as user message
             results_message = self._format_tool_results(tool_results)
+            print(f"USER (tools): {results_message}")
+
             messages.append({"role": "user", "content": results_message})
             
             # Check if all tools succeeded

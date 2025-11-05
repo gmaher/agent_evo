@@ -8,8 +8,8 @@ class Agent:
     name: str
     system_prompt: str
     tool_ids: List[str] = field(default_factory=list)
-    model: str = "gpt-5-mini"
-    temperature: float = 0.7
+    model: str = "gpt-4o"
+    temperature: float = 1.0
     max_retries: int = 3
     
     def to_dict(self) -> Dict[str, Any]:

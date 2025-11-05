@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
+import sys
 import os
+sys.path.append(os.path.abspath(".."))
 import argparse
 import json
 import sys
@@ -17,7 +18,7 @@ def main():
     parser.add_argument("--agents", required=True, help="Path to agents JSON file")
     parser.add_argument("--team", required=True, help="Path to team JSON file (for team mode)")
     parser.add_argument("--task", required=True, help="Path to task text file")
-    parser.add_argument("--model", help="LLM model to use", default="gpt-5-mini")
+    parser.add_argument("--model", help="LLM model to use", default="gpt-4o")
 
     parser.add_argument("--output", help="Output file for results")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
