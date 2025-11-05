@@ -1,0 +1,9 @@
+Analyze the following dataset and provide a comprehensive report:
+
+Data points: [23, 45, 67, 89, 12, 34, 56, 78, 90, 21, 43, 65, 87, 10]
+
+Please:
+1. Calculate basic statistical measures
+2. Identify any patterns or outliers
+3. Generate a written summary of findings
+4. Save the report to a file called "analysis_report.txt"

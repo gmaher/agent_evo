@@ -1,0 +1,39 @@
+{
+  "id": "analysis_team",
+  "name": "Data Analysis Team",
+  "description": "A team for comprehensive data analysis and reporting",
+  "agent_ids": [
+    "coordinator",
+    "math_expert",
+    "data_scientist",
+    "text_processor"
+  ],
+  "edges": [
+    {
+      "from": "coordinator",
+      "to": "math_expert",
+      "description": "Delegate mathematical calculations"
+    },
+    {
+      "from": "coordinator",
+      "to": "data_scientist",
+      "description": "Delegate data analysis tasks"
+    },
+    {
+      "from": "coordinator",
+      "to": "text_processor",
+      "description": "Delegate text processing and reporting"
+    },
+    {
+      "from": "data_scientist",
+      "to": "math_expert",
+      "description": "Request calculations for analysis"
+    },
+    {
+      "from": "data_scientist",
+      "to": "text_processor",
+      "description": "Request report generation"
+    }
+  ],
+  "entry_point": "coordinator"
+}

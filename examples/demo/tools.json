@@ -1,0 +1,95 @@
+{
+  "tools": [
+    {
+      "id": "calculator",
+      "name": "calculate",
+      "description": "Perform mathematical calculations",
+      "parameters": [
+        {
+          "name": "expression",
+          "type": "str",
+          "description": "Mathematical expression to evaluate",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "float",
+        "description": "Result of the calculation"
+      },
+      "code": "def calculate(expression):\n    try:\n        result = eval(expression, {'__builtins__': {}}, {'math': __import__('math')})\n        return float(result)\n    except Exception as e:\n        raise ValueError(f'Invalid expression: {e}')"
+    },
+    {
+      "id": "string_operations",
+      "name": "string_ops",
+      "description": "Perform string operations",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "str",
+          "description": "Input text",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "str",
+          "description": "Operation to perform (upper, lower, reverse, length)",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "str",
+        "description": "Result of the string operation"
+      },
+      "code": "def string_ops(text, operation):\n    ops = {\n        'upper': lambda t: t.upper(),\n        'lower': lambda t: t.lower(),\n        'reverse': lambda t: t[::-1],\n        'length': lambda t: str(len(t))\n    }\n    if operation not in ops:\n        raise ValueError(f'Unknown operation: {operation}')\n    return ops[operation](text)"
+    },
+    {
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Write content to a file",
+      "parameters": [
+        {
+          "name": "filename",
+          "type": "str",
+          "description": "Name of the file to write",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "str",
+          "description": "Content to write to the file",
+          "required": true
+        },
+        {
+          "name": "append",
+          "type": "bool",
+          "description": "Whether to append to existing file",
+          "required": false,
+          "default": false
+        }
+      ],
+      "returns": {
+        "type": "str",
+        "description": "Success message"
+      },
+      "code": "def write_file(filename, content, append=False):\n    mode = 'a' if append else 'w'\n    with open(filename, mode) as f:\n        f.write(content)\n    return f'Successfully wrote to {filename}'"
+    },
+    {
+      "id": "data_analyzer",
+      "name": "analyze_data",
+      "description": "Analyze a list of numbers",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "list",
+          "description": "List of numbers to analyze",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "dict",
+        "description": "Statistical analysis results"
+      },
+      "code": "def analyze_data(data):\n    import statistics\n    if not data:\n        return {'error': 'Empty dataset'}\n    return {\n        'count': len(data),\n        'sum': sum(data),\n        'mean': statistics.mean(data),\n        'median': statistics.median(data),\n        'min': min(data),\n        'max': max(data),\n        'std_dev': statistics.stdev(data) if len(data) > 1 else 0\n    }"
+    }
+  ]
+}
