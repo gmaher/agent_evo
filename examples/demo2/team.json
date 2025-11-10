@@ -1,0 +1,36 @@
+{
+  "id": "flappy_bird_team",
+  "name": "Flappy Bird Development Team",
+  "description": "Team dedicated to creating the Flappy Bird game.",
+  "agent_ids": [
+    "researcher",
+    "game_designer",
+    "coder",
+    "tester",
+    "documentation_specialist"
+  ],
+  "edges": [
+    {
+      "from": "researcher",
+      "to": "game_designer",
+      "description": "Provide research findings"
+    },
+    {
+      "from": "game_designer",
+      "to": "coder",
+      "description": "Design game structure"
+    },
+    {
+      "from": "coder",
+      "to": "tester",
+      "description": "Deliver code for testing"
+    },
+    { "from": "tester", "to": "coder", "description": "Feedback on issues" },
+    {
+      "from": "coder",
+      "to": "documentation_specialist",
+      "description": "Provide final code for documentation"
+    }
+  ],
+  "entry_point": "researcher"
+}

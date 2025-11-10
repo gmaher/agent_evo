@@ -1,0 +1,7 @@
+Create the game flappy bird in html javascript and css
+
+The game should be complete and fully playable.
+
+It should have a start screen, and when the game ends there should be a gameover screen with a restart button that restarts the game.
+
+All the features of the original game should be reproduced.

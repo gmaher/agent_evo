@@ -1,5 +1,10 @@
 # TODO
 
+- better system prompt around using tools
+  - few shots (using available tools)
+- better system prompt around building teams and agents
+- full code execution environment
+
 # Process
 
 dataset

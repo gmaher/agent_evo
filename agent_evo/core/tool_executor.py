@@ -13,10 +13,12 @@ class ToolExecutor:
     def setup_safe_environment(self):
         """Setup a safe execution environment with common imports."""
         safe_imports = """
+import os
 import math
 import json
 import datetime
 import re
+import requests
 from typing import *
 """
         exec(safe_imports, self.global_context)

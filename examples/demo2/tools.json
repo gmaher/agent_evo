@@ -1,0 +1,51 @@
+{
+  "tools": [
+    {
+      "id": "file_editor",
+      "name": "file_editor",
+      "description": "Tool for editing files",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to edit"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "Content to write to the file"
+        }
+      ],
+      "returns": { "type": "boolean", "description": "Success status" },
+      "code": "def file_editor(file_path, content):\n    try:\n        with open(file_path, 'w') as file:\n            file.write(content)\n        return True\n    except Exception as e:\n        return False"
+    },
+    {
+      "id": "web_browser",
+      "name": "web_browser",
+      "description": "Tool for running and testing web applications",
+      "parameters": [
+        {
+          "name": "url",
+          "type": "string",
+          "description": "URL of the web application to test"
+        }
+      ],
+      "returns": { "type": "string", "description": "Page output" },
+      "code": "def web_browser(url):\n    import requests\n    try:\n        response = requests.get(url)\n        return response.text\n    except Exception as e:\n        return str(e)"
+    },
+    {
+      "id": "debugger",
+      "name": "debugger",
+      "description": "Tool for debugging code",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to debug"
+        }
+      ],
+      "returns": { "type": "string", "description": "Debugging report" },
+      "code": "def debugger(file_path):\n    try:\n        # Placeholder for actual debugging logic\n        return 'Debugging completed successfully'\n    except Exception as e:\n        return str(e)"
+    }
+  ]
+}

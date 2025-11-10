@@ -8,7 +8,8 @@ from agent_evo.llm.client import LLMClient
 class AgentRunner:
     """Runs an agent with tool execution capabilities."""
     
-    BASE_SYSTEM_PROMPT = """You are an AI agent with access to various tools. When you need to use a tool, use the following syntax:
+    BASE_SYSTEM_PROMPT = """# TOOL CALLING AGENT
+You are an AI agent with access to various tools. When you need to use a tool, use the following syntax:
 
 [TOOL: tool_name(arg1=value1, arg2=value2)]
 
@@ -16,19 +17,33 @@ For example:
 [TOOL: calculate(expression="2 + 2")]
 [TOOL: search(query="AI news", limit=5)]
 
+You may only use the tools listed under AVAIBALE TOOLS header.
+
 You can use multiple tools in a single response. After using a tool, I will provide you with the result, and you can continue with your task.
 
+# FILE CREATION 
+If you are tasked with creating files always use the appropriate file creation tool (listed under available tools if provided to you), do not simply put the file content in that chat, it will not correctly produce a file, always use a tool call to create files.
+
+# DELEGATION
 {delegation_instructions}
+
+# WRAPPING UP
+IMPORTANT: You must end your turn by either:
+1. Delegating to another agent using [DELEGATE: agent_id]
+2. Marking your work as complete with <FINISHED>
+
+If you have completed your task and no delegation is needed, you MUST include <FINISHED> in your final response.
+If you do not delegate or mark as finished, you will be prompted to continue.
 
 Always think step by step about what tools you need to use to complete the task.
 
-Available tools:
+# AVAILABLE TOOLS
 {tools_description}
 
+# ROLE SPECIFIC INSTRUCTIONS
 {custom_prompt}"""
 
-    DELEGATION_INSTRUCTIONS = """
-When you need to delegate a task to another team member, use this syntax:
+    DELEGATION_INSTRUCTIONS = """When you need to delegate a task to another team member, use this syntax:
 
 [DELEGATE: agent_id]
 Task description for the agent
@@ -96,6 +111,7 @@ Once you delegate, you are done and should not continue working on the task.
         history = []
         iteration = 0
         delegation = None
+        is_finished = False
         
         while iteration < max_iterations:
             iteration += 1
@@ -115,9 +131,13 @@ Once you delegate, you are done and should not continue working on the task.
                     "iteration": iteration,
                     "response": response,
                     "tool_calls": [],
-                    "delegation": delegation
+                    "delegation": delegation,
+                    "finished": False
                 })
                 break
+            
+            # Check if agent marked task as finished
+            is_finished = self._is_finished(response)
             
             # Parse response for tool calls
             cleaned_response, tool_calls = self.parser.parse_response(response)
@@ -125,13 +145,24 @@ Once you delegate, you are done and should not continue working on the task.
             history.append({
                 "iteration": iteration,
                 "response": response,
-                "tool_calls": tool_calls
+                "tool_calls": tool_calls,
+                "finished": is_finished
             })
             
-            # If no tool calls, we're done
-            if not tool_calls:
+            # If no tool calls and marked as finished, we're done
+            if not tool_calls and is_finished:
                 messages.append({"role": "assistant", "content": response})
                 break
+            
+            # If no tool calls and not finished, prompt to continue
+            if not tool_calls and not is_finished:
+                messages.append({"role": "assistant", "content": response})
+                
+                # Prompt agent to continue or finish
+                continue_prompt = "You must either:\n1. Use the available tools to continue working on the task\n2. Delegate to another team member using [DELEGATE: agent_id]\n3. Mark your work as complete with <FINISHED>\n\nPlease continue or finish your turn."
+                print(f"\nUSER (continue prompt): {continue_prompt}")
+                messages.append({"role": "user", "content": continue_prompt})
+                continue
             
             # Execute tool calls
             tool_results = []
@@ -180,6 +211,10 @@ Once you delegate, you are done and should not continue working on the task.
 
             messages.append({"role": "user", "content": results_message})
             
+            # If finished after tool execution, break
+            if is_finished:
+                break
+            
             # Check if all tools succeeded
             all_success = all(
                 r.get("result", {}).get("success", False) 
@@ -197,7 +232,8 @@ Once you delegate, you are done and should not continue working on the task.
             "history": history,
             "messages": messages[1:],  # Exclude system message
             "iterations": iteration,
-            "delegation": delegation
+            "delegation": delegation,
+            "finished": is_finished
         }
     
     def _parse_delegation(self, response: str) -> Optional[Dict[str, str]]:
@@ -215,6 +251,10 @@ Once you delegate, you are done and should not continue working on the task.
             }
         
         return None
+    
+    def _is_finished(self, response: str) -> bool:
+        """Check if agent marked their work as finished."""
+        return "<FINISHED>" in response
     
     def _build_tools_description(self, tools: Dict[str, Tool]) -> str:
         """Build a description of available tools."""
