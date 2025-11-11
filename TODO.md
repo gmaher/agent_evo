@@ -4,6 +4,9 @@
   - few shots (using available tools)
 - better system prompt around building teams and agents
 - full code execution environment
+- output directory to run directory
+- task set
+- initial builder sampling
 
 # Process
 
