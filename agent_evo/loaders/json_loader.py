@@ -21,6 +21,7 @@ class JSONLoader:
         tools = {}
         for tool_data in data.get("tools", []):
             tool = Tool.from_dict(tool_data)
+            if tool.id == "file_writer" or tool.id == "file_reader": continue
             tools[tool.id] = tool
         
         return tools

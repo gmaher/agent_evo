@@ -1,48 +1,6 @@
 {
   "tools": [
     {
-      "id": "write_file",
-      "name": "write_file",
-      "description": "Write content to a file",
-      "parameters": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "File path to write to",
-          "required": true
-        },
-        {
-          "name": "content",
-          "type": "string",
-          "description": "Content to write to the file",
-          "required": true
-        }
-      ],
-      "returns": {
-        "type": "string",
-        "description": "Success message or error"
-      },
-      "code": "import os\nimport json\n\ndef write_file(path, content):\n    try:\n        # Create directory if it doesn't exist\n        os.makedirs(os.path.dirname(path) if os.path.dirname(path) else '.', exist_ok=True)\n        \n        # Write content to file\n        with open(path, 'w') as f:\n            f.write(content)\n        \n        return f'Successfully wrote {len(content)} characters to {path}'\n    except Exception as e:\n        return f'Error writing file: {str(e)}'"
-    },
-    {
-      "id": "read_file",
-      "name": "read_file",
-      "description": "Read content from a file",
-      "parameters": [
-        {
-          "name": "path",
-          "type": "string",
-          "description": "File path to read from",
-          "required": true
-        }
-      ],
-      "returns": {
-        "type": "string",
-        "description": "File content or error message"
-      },
-      "code": "def read_file(path):\n    try:\n        with open(path, 'r') as f:\n            content = f.read()\n        return content\n    except FileNotFoundError:\n        return f'File not found: {path}'\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
-    },
-    {
       "id": "validate_json",
       "name": "validate_json",
       "description": "Validate if a string is valid JSON",

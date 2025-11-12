@@ -14,22 +14,29 @@ from agent_evo.core.team_runner import TeamRunner
 
 def main():
     parser = argparse.ArgumentParser(description="Run AI agent teams")
-    parser.add_argument("--tools", required=True, help="Path to tools JSON file")
-    parser.add_argument("--agents", required=True, help="Path to agents JSON file")
-    parser.add_argument("--team", required=True, help="Path to team JSON file (for team mode)")
+    parser.add_argument("--input-dir", required=True, help="Directory containing tools.json, agents.json, and team.json")
+
     parser.add_argument("--task", required=True, help="Path to task text file")
     parser.add_argument("--model", help="LLM model to use", default="gpt-4o")
 
-    parser.add_argument("--output", help="Output file for results")
+    parser.add_argument("--output-dir", help="Working directory for tool file outputs", default="./output")
+
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     
     args = parser.parse_args()
     
     try:
+        # Construct paths from input directory
+        input_dir = Path(args.input_dir)
+        tools_path = input_dir / "tools.json"
+        agents_path = input_dir / "agents.json"
+        team_path = input_dir / "team.json"
+        
         # Load configurations
         print("Loading configurations...")
-        tools = JSONLoader.load_tools(args.tools)
-        agents = JSONLoader.load_agents(args.agents)
+        tools = JSONLoader.load_tools(str(tools_path))
+        agents = JSONLoader.load_agents(str(agents_path))
+        team = JSONLoader.load_team(str(team_path))
         task = JSONLoader.load_task(args.task)
         
         if args.verbose:
@@ -44,10 +51,11 @@ def main():
         
         llm_client = OpenAIClient(api_key=api_key, model=args.model)
         
-
-        # Team mode
-        team = JSONLoader.load_team(args.team)
-        print(f"Running team: {team.name}")
+        # Create output directory and change to it
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        os.chdir(output_dir)
+        print(f"Working directory: {output_dir.absolute()}")
         
         runner = TeamRunner(llm_client)
         result = runner.run_team(
@@ -65,10 +73,9 @@ def main():
         
         
         # Save output if requested
-        if args.output:
-            with open(args.output, 'w') as f:
-                json.dump(result, f, indent=2, default=str)
-            print(f"\nResults saved to {args.output}")
+        with open("output.json", 'w') as f:
+            json.dump(result, f, indent=2, default=str)
+        print(f"\nResults saved to output.json")
     
     except Exception as e:
         print(f"Error: {e}")

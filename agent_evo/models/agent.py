@@ -3,11 +3,15 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Agent:
-    """Represents an AI agent with tools and capabilities."""
+    """Represents an AI agent with tools and capabilities.
+    
+    All agents automatically have access to default tools (file_reader, file_writer).
+    The tool_ids list specifies additional tools specific to this agent.
+    """
     id: str
     name: str
     system_prompt: str
-    tool_ids: List[str] = field(default_factory=list)
+    tool_ids: List[str] = field(default_factory=list)  # Additional tools beyond defaults
     model: str = "gpt-4o"
     temperature: float = 1.0
     max_retries: int = 3

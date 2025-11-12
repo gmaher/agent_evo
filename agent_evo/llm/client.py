@@ -17,7 +17,7 @@ class LLMClient(ABC):
 class OpenAIClient(LLMClient):
     """OpenAI API client implementation."""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o"):
         self.client = OpenAI(api_key=api_key)
         self.model = model
     

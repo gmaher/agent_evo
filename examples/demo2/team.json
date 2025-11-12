@@ -1,36 +1,49 @@
 {
   "id": "flappy_bird_team",
-  "name": "Flappy Bird Development Team",
-  "description": "Team dedicated to creating the Flappy Bird game.",
-  "agent_ids": [
-    "researcher",
-    "game_designer",
-    "coder",
-    "tester",
-    "documentation_specialist"
-  ],
+  "name": "Flappy Bird Game Development Team",
+  "description": "A specialized team for developing a Flappy Bird game using HTML, JavaScript, and CSS.",
+  "agent_ids": ["game_designer", "frontend_dev", "js_dev", "ui_ux_designer", "tester"],
   "edges": [
     {
-      "from": "researcher",
-      "to": "game_designer",
-      "description": "Provide research findings"
+      "from": "game_designer",
+      "to": "frontend_dev",
+      "description": "Provide game structure and screen flow for UI implementation."
     },
     {
       "from": "game_designer",
-      "to": "coder",
-      "description": "Design game structure"
+      "to": "js_dev",
+      "description": "Provide game mechanics and rules for JavaScript implementation."
     },
     {
-      "from": "coder",
+      "from": "frontend_dev",
+      "to": "ui_ux_designer",
+      "description": "Collaborate on visual design and user experience."
+    },
+    {
+      "from": "js_dev",
       "to": "tester",
-      "description": "Deliver code for testing"
+      "description": "Submit game logic for testing."
     },
-    { "from": "tester", "to": "coder", "description": "Feedback on issues" },
     {
-      "from": "coder",
-      "to": "documentation_specialist",
-      "description": "Provide final code for documentation"
+      "from": "frontend_dev",
+      "to": "tester",
+      "description": "Submit UI components for testing."
+    },
+    {
+      "from": "ui_ux_designer",
+      "to": "tester",
+      "description": "Submit final design for usability testing."
+    },
+    {
+      "from": "tester",
+      "to": "js_dev",
+      "description": "Report bugs and issues in game logic for fixes."
+    },
+    {
+      "from": "tester",
+      "to": "frontend_dev",
+      "description": "Report issues in UI for improvements."
     }
   ],
-  "entry_point": "researcher"
+  "entry_point": "game_designer"
 }

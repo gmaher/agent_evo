@@ -1,51 +1,40 @@
 {
   "tools": [
     {
-      "id": "file_editor",
-      "name": "file_editor",
-      "description": "Tool for editing files",
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Write content to a file with proper error handling",
       "parameters": [
         {
-          "name": "file_path",
+          "name": "path",
           "type": "string",
-          "description": "Path to the file to edit"
+          "description": "File path relative to current directory",
+          "required": true
         },
         {
           "name": "content",
           "type": "string",
-          "description": "Content to write to the file"
+          "description": "Content to write to the file",
+          "required": true
         }
       ],
-      "returns": { "type": "boolean", "description": "Success status" },
-      "code": "def file_editor(file_path, content):\n    try:\n        with open(file_path, 'w') as file:\n            file.write(content)\n        return True\n    except Exception as e:\n        return False"
+      "returns": {"type": "string", "description": "Success message or error"},
+      "code": "def write_file(path, content):\n    import os\n    try:\n        dir_name = os.path.dirname(path)\n        if dir_name and not os.path.exists(dir_name):\n            os.makedirs(dir_name)\n        with open(path, 'w') as f:\n            f.write(content)\n        return f'Successfully wrote {len(content)} characters to {path}'\n    except Exception as e:\n        return f'Error writing file: {str(e)}'"
     },
     {
-      "id": "web_browser",
-      "name": "web_browser",
-      "description": "Tool for running and testing web applications",
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Read content from a file",
       "parameters": [
         {
-          "name": "url",
+          "name": "path",
           "type": "string",
-          "description": "URL of the web application to test"
+          "description": "File path to read from",
+          "required": true
         }
       ],
-      "returns": { "type": "string", "description": "Page output" },
-      "code": "def web_browser(url):\n    import requests\n    try:\n        response = requests.get(url)\n        return response.text\n    except Exception as e:\n        return str(e)"
-    },
-    {
-      "id": "debugger",
-      "name": "debugger",
-      "description": "Tool for debugging code",
-      "parameters": [
-        {
-          "name": "file_path",
-          "type": "string",
-          "description": "Path to the file to debug"
-        }
-      ],
-      "returns": { "type": "string", "description": "Debugging report" },
-      "code": "def debugger(file_path):\n    try:\n        # Placeholder for actual debugging logic\n        return 'Debugging completed successfully'\n    except Exception as e:\n        return str(e)"
+      "returns": {"type": "string", "description": "File content or error message"},
+      "code": "def read_file(path):\n    try:\n        with open(path, 'r') as f:\n            content = f.read()\n        return content\n    except FileNotFoundError:\n        return f'Error: File {path} not found'\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
     }
   ]
 }

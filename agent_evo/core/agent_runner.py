@@ -1,106 +1,12 @@
 from typing import Dict, List, Any, Optional, Tuple
 from agent_evo.models.agent import Agent
+from agent_evo.models.default_tools import get_default_tools
 from agent_evo.models.tool import Tool
 from agent_evo.core.tool_executor import ToolExecutor
+from agent_evo.prompts.agent import AGENT_SYSTEM_PROMPT, DELEGATION_INSTRUCTIONS
 from agent_evo.utils.parser import ToolCallParser
 from agent_evo.llm.client import LLMClient
 
-BASE_SYSTEM_PROMPT = """# TOOL CALLING AGENT
-You are an expert AI agent that uses provided tools to complete assigned tasks.
-
-# TOOL CALLING
-When you need to use a tool, use the following syntax:
-
-[TOOL: tool_name(arg1=value1, arg2=value2)]
-
-For example:
-[TOOL: calculate(expression="2 + 2")]
-[TOOL: search(query="AI news", limit=5)]
-
-You have the following tools to use, these are the only tools you can submit a tool call for:
-{tools_description}
-
-You can use multiple tools in a single response. After using a tool, I will provide you with the result, and you can continue with your task.
-
-# FILE CREATION 
-If you are tasked with creating files always use the appropriate file creation tool (listed under available tools if provided to you), do not simply put the file content in that chat, it will not correctly produce a file, always use a tool call to create files. If no file creation tool has been provided then you cannot create files and must delegate to another agent that can.
-
-# DELEGATION
-{delegation_instructions}
-
-# WRAPPING UP
-IMPORTANT: You must end your turn by either:
-1. Delegating to another agent using [DELEGATE: agent_id]
-2. Marking your work as complete with <FINISHED>
-
-If you have completed your task and no delegation is needed, you MUST include <FINISHED> in your final response.
-If you do not delegate or mark as finished, you will be prompted to continue.
-
-Always think step by step about what tools you need to use to complete the task.
-
-# EXAMPLES
-
-## Example 1: Calculation task
-**Available Tools:**
-- calculator(expression: string): Evaluates a mathematical expression
-- file_writer(path: string, content: string): Writes content to a file
-
-**Task:** Calculate 15 * 23 and save the result to result.txt
-
-**Correct Response:**
-I'll calculate the result and save it to a file.
-
-[TOOL: calculator(expression="15 * 23")]
-
-**Tool Result:**
-[TOOL RESULT: calculator]
-Success: 345
-
-**Turn 2 Response:**
-I will now write the result to a file using the file_writer tool.
-
-[TOOL: file_writer(path="result.txt", content="The result of 15 * 23 is 345")]
-
-<FINISHED>
-
-## Example 2: Task with file operations
-**Available Tools:**
-- file_reader(path: string): Reads the contents of a file
-- file_writer(path: string, content: string): Writes content to a file
-
-**Task:** Read the contents of input.txt and write them to output.txt in uppercase
-
-**Turn 1 Response:**
-I need to first read the input file to see its contents.
-
-[TOOL: file_reader(path="input.txt")]
-
-**Tool Result:**
-[TOOL RESULT: file_reader]
-Success: Hello World! This is a test file.
-
-**Turn 2 Response:**
-Now I'll convert the content to uppercase and write it to the output file.
-
-[TOOL: file_writer(path="output.txt", content="HELLO WORLD! THIS IS A TEST FILE.")]
-
-The task is complete. I've successfully read input.txt and written its contents in uppercase to output.txt.
-
-<FINISHED>
-
-# ROLE SPECIFIC INSTRUCTIONS
-{custom_prompt}"""
-
-DELEGATION_INSTRUCTIONS = """When you need to delegate a task to another team member, use this syntax:
-
-[DELEGATE: agent_id]
-Task description for the agent
-
-Available team members you can delegate to:
-{available_agents}
-
-Once you delegate, you are done and should not continue working on the task.
-"""
 
 class AgentRunner:
     """Runs an agent with tool execution capabilities."""
@@ -109,6 +15,7 @@ class AgentRunner:
         self.llm_client = llm_client
         self.tool_executor = ToolExecutor()
         self.parser = ToolCallParser()
+        self.default_tools = get_default_tools()  # Load default tools
     
     def run_agent(self, 
                   agent: Agent, 
@@ -121,12 +28,21 @@ class AgentRunner:
         Run an agent on a task with available tools.
         Returns the final response, execution history, and delegation info.
         """
+        # Start with default tools
+        all_tools = dict(self.default_tools)
+        
+        # Add custom tools (these can override defaults if needed)
+        all_tools.update(tools)
+        
         # Filter tools available to this agent
-        available_tools = {
-            tool_id: tool 
-            for tool_id, tool in tools.items() 
-            if tool_id in agent.tool_ids
-        }
+        # Note: default tools are always available regardless of agent.tool_ids
+        available_tools = dict(self.default_tools)  # Always include defaults
+        
+        # Add agent-specific tools
+        for tool_id, tool in all_tools.items():
+            if tool_id in agent.tool_ids and tool_id not in self.default_tools:
+                available_tools[tool_id] = tool
+        
         
         # Build tools description
         tools_description = self._build_tools_description(available_tools)
@@ -140,7 +56,7 @@ class AgentRunner:
             )
         
         # Build system prompt
-        system_prompt = BASE_SYSTEM_PROMPT.format(
+        system_prompt = AGENT_SYSTEM_PROMPT.format(
             tools_description=tools_description,
             delegation_instructions=delegation_instructions,
             custom_prompt=agent.system_prompt
