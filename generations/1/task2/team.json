@@ -1,0 +1,24 @@
+{
+  "id": "market_analysis_team",
+  "name": "Market Analysis Team",
+  "description": "A team specialized in analyzing the workflow automation and AI agents market.",
+  "agent_ids": ["researcher", "analyst", "writer", "reviewer"],
+  "edges": [
+    {
+      "from": "researcher",
+      "to": "analyst",
+      "description": "Pass gathered data for analysis."
+    },
+    {
+      "from": "analyst",
+      "to": "writer",
+      "description": "Provide analysis for report writing."
+    },
+    {
+      "from": "writer",
+      "to": "reviewer",
+      "description": "Submit report for final review."
+    }
+  ],
+  "entry_point": "researcher"
+}

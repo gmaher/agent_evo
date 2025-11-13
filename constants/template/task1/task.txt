@@ -1,0 +1,49 @@
+# Task Instructions
+
+Diagnose and fix a bug in a tiny Python todo app, then add a small feature and update the docs.
+
+# equested Changes
+
+Fix the bug where marking a todo as done does not persist after restarting the program.
+Add a new command: delete <id> to remove a todo by its ID.
+Update this README with a short "Change Log" section documenting what was done.
+
+# Instructions
+
+Open and understand app.py and README.md.
+
+Reproduce the bug:
+
+Add a todo.
+
+Mark it done.
+
+Run python app.py list again after restarting the program and confirm the status is not persisted.
+
+Fix the persistence bug in save_todos.
+
+Add a delete <id> command that:
+
+Removes the todo with the given 1-based ID.
+
+Handles invalid IDs gracefully.
+
+Update README.md:
+
+Add a Change Log section summarizing:
+
+The bug fix.
+
+The new delete command.
+
+Run a small “manual test matrix” and write the results to test_results.md:
+
+Show example commands and their outputs before and after changes.
+
+Success criteria:
+
+Re-running the script after marking a todo done still shows it as done.
+
+delete <id> works and keeps the list consistent.
+
+README and test_results.md exist and are coherent.

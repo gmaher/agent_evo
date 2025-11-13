@@ -1,0 +1,29 @@
+{
+  "id": "simple_builder",
+  "name": "Simple Team Builder",
+  "description": "A team that designs and creates other AI teams",
+  "agent_ids": [
+    "architect",
+    "tool_designer",
+    "agent_designer",
+    "team_assembler"
+  ],
+  "edges": [
+    {
+      "from": "architect",
+      "to": "tool_designer",
+      "description": "Pass team design and required tools specification"
+    },
+    {
+      "from": "tool_designer",
+      "to": "agent_designer",
+      "description": "Pass tools specification for agent design"
+    },
+    {
+      "from": "agent_designer",
+      "to": "team_assembler",
+      "description": "Pass agent definitions for final team assembly"
+    }
+  ],
+  "entry_point": "architect"
+}

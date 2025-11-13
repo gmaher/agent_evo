@@ -1,0 +1,65 @@
+Task Instructions
+
+Read company_overview.md and internal_notes.txt.
+
+Use the web to:
+
+Identify 2–3 relevant competitors in the workflow-automation / AI-agents space.
+
+For each competitor, gather:
+
+Target users.
+
+Core features / product positioning.
+
+Any high-level pricing information (or pricing style: free tier, per-seat, usage-based, etc.).
+
+Identify common buyer concerns or objections across the space (e.g., security, reliability, change management).
+
+Produce a report market_brief.md with the following structure:
+
+# Market Brief – Workflow Automation & AI Agents
+
+## 1. Quick Summary (1–2 paragraphs)
+
+## 2. Our Positioning (Acme Workflow Automation)
+- Short recap of what Acme does (based on local files).
+
+## 3. Competitor Snapshot
+
+### 3.1 <Competitor 1>
+- Target users:
+- Positioning:
+- Key features:
+- Pricing model:
+- Notes on how they differ from Acme:
+
+### 3.2 <Competitor 2>
+...
+
+## 4. Common Buyer Concerns / Objections
+
+- Concern 1: ...
+- Concern 2: ...
+- etc.
+
+## 5. Opportunities for Acme
+
+- 3–5 bullet points on how Acme could differentiate or message better.
+
+
+Ensure:
+
+All facts pulled from the web are consistent and up-to-date.
+
+Information from local files is correctly integrated (don’t contradict it).
+
+The report is written in clear, concise business language.
+
+Success criteria:
+
+market_brief.md exists and follows the requested structure.
+
+It references both local context and web findings.
+
+Competitor details are specific enough to be plausible (not generic fluff).

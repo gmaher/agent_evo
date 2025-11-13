@@ -1,0 +1,88 @@
+Goal:
+Search through a small “project docs” directory, synthesize what’s going on, and write an executive summary + risk list.
+
+Task Instructions
+
+Scan all files in project_alpha_docs/:
+
+Identify the purpose and status of Project Alpha.
+
+Infer what likely caused the incident in incident_ticket.md using:
+
+The design doc.
+
+Meeting notes.
+
+The metrics.
+
+Do some light analysis on metrics.csv:
+
+Compute failure rates per date (failed / total).
+
+Comment on the trend (is it getting better/worse?).
+
+Produce two output files:
+
+(a) executive_summary.md
+
+Suggested structure:
+
+# Executive Summary – Project Alpha
+
+## 1. What is Project Alpha?
+
+## 2. Current Status
+
+## 3. Recent Incident (2025-10-10 to 2025-10-12)
+
+- Likely root cause:
+- Contributing factors:
+- Impact (tie to metrics if possible):
+
+## 4. Key Risks & Open Questions
+
+- Risk 1: ...
+- Risk 2: ...
+- etc.
+
+
+(b) incident_analysis.md
+
+Suggested structure:
+
+# Incident Analysis – Alpha Ingestion
+
+## 1. Timeline
+
+- 2025-09-18: ...
+- 2025-10-05: ...
+- 2025-10-10 to 2025-10-12: ...
+
+## 2. Technical Root Cause (Hypothesis)
+
+## 3. Evidence
+
+- Evidence from logs/metrics:
+- Evidence from design/notes:
+
+## 4. Mitigation & Follow-Up
+
+- Short-term mitigations:
+- Long-term improvements:
+
+
+Ensure the AI agents:
+
+Correctly read and cross-reference multiple files.
+
+Use the CSV data numerically (not just hand-wavy).
+
+Produce coherent, non-contradictory narratives.
+
+Success criteria:
+
+Both markdown files exist and follow the structure.
+
+Reasoning ties together design, notes, and metrics.
+
+The root-cause hypothesis is consistent with the provided context.

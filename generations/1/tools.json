@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "id": "validate_json",
+      "name": "validate_json",
+      "description": "Validate if a string is valid JSON",
+      "parameters": [
+        {
+          "name": "json_string",
+          "type": "string",
+          "description": "JSON string to validate",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "dict",
+        "description": "Validation result with is_valid boolean and error message if invalid"
+      },
+      "code": "import json\n\ndef validate_json(json_string):\n    try:\n        json.loads(json_string)\n        return {'is_valid': True, 'error': None}\n    except json.JSONDecodeError as e:\n        return {'is_valid': False, 'error': f'Invalid JSON: {str(e)}'}"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "project_alpha_analysis_team",
+  "name": "Project Alpha Analysis Team",
+  "description": "A specialized team for analyzing project documentation and synthesizing findings into structured markdown files.",
+  "agent_ids": ["document_analyst", "data_analyst", "summary_writer"],
+  "edges": [
+    {
+      "from": "document_analyst",
+      "to": "summary_writer",
+      "description": "Provide synthesized document analysis for summary creation"
+    },
+    {
+      "from": "data_analyst",
+      "to": "summary_writer",
+      "description": "Deliver analyzed metrics data for integration into summaries"
+    }
+  ],
+  "entry_point": "document_analyst"
+}

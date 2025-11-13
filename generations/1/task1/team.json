@@ -1,0 +1,34 @@
+{
+  "id": "todo_app_team",
+  "name": "Todo App Development Team",
+  "description": "A specialized team for fixing and enhancing a Python todo application.",
+  "agent_ids": ["code_analyst", "python_developer", "documentation_specialist", "qa_tester"],
+  "edges": [
+    {
+      "from": "code_analyst",
+      "to": "python_developer",
+      "description": "Pass bug report and suggestions for fixes."
+    },
+    {
+      "from": "python_developer",
+      "to": "documentation_specialist",
+      "description": "Request updates to documentation after implementing changes."
+    },
+    {
+      "from": "python_developer",
+      "to": "qa_tester",
+      "description": "Request testing of the application after implementation."
+    },
+    {
+      "from": "documentation_specialist",
+      "to": "qa_tester",
+      "description": "Provide updated documentation for verification."
+    },
+    {
+      "from": "qa_tester",
+      "to": "python_developer",
+      "description": "Report back any issues found during testing."
+    }
+  ],
+  "entry_point": "code_analyst"
+}

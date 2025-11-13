@@ -1,0 +1,1 @@
+Create a general purpose high performing team of agents and tools for them to use. The agents should be able to perform general tasks on a computer. E.g. file reading and writing, writing code, but also think about looking up specific information, searching through files, writing reports based on context files, potentially getting information from websites.
