@@ -12,5 +12,11 @@ Do several rounds creating different B each time
 Recombine B into better teams
 repeat
 
-How to ensure task becomes harder each time?
-provide previous tasks as example and ask for harder tasks?
+just run on handcrafted tasks
+
+read all files and show to judge?
+get average score of builder team
+then rank
+choose top K
+script to run generation + judge
+script to get generation results + combine
