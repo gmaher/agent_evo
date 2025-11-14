@@ -77,7 +77,7 @@ def main():
         print(f"\nRunning builder team: {builder_team.name}")
         print("="*60)
         
-        runner = TeamRunner(llm_client)
+        runner = TeamRunner(llm_client, ignored_files=[])
         result = runner.run_team(
             team=builder_team,
             task=BUILD_PROMPT.format(original_task=original_task),

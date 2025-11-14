@@ -3,83 +3,69 @@
     {
       "id": "file_reader",
       "name": "read_file",
-      "description": "Read the contents of a file with error handling.",
+      "description": "Read the contents of a file",
       "parameters": [
         {
           "name": "file_path",
           "type": "string",
-          "description": "The path to the file to be read.",
+          "description": "Path to the file to read",
           "required": true
-        },
-        {
-          "name": "encoding",
-          "type": "string",
-          "description": "The file encoding to use.",
-          "required": false,
-          "default": "utf-8"
         }
       ],
       "returns": {
         "type": "string",
-        "description": "The content of the file or an error message."
+        "description": "Contents of the file"
       },
-      "code": "def read_file(file_path, encoding='utf-8'): try: with open(file_path, 'r', encoding=encoding) as file: return file.read() except Exception as e: return f'Error reading file: {str(e)}'"
+      "code": "def read_file(file_path):\n    try:\n        with open(file_path, 'r') as file:\n            return file.read()\n    except FileNotFoundError:\n        return 'File not found'\n    except Exception as e:\n        return str(e)"
     },
     {
       "id": "file_writer",
       "name": "write_file",
-      "description": "Write content to a file, creating it if necessary.",
+      "description": "Write content to a file",
       "parameters": [
         {
           "name": "file_path",
           "type": "string",
-          "description": "The path to the file to write.",
+          "description": "Path to the file to write",
           "required": true
         },
         {
           "name": "content",
           "type": "string",
-          "description": "The content to write to the file.",
+          "description": "Content to write to the file",
           "required": true
         },
         {
           "name": "mode",
           "type": "string",
-          "description": "The mode to open the file in ('w' to overwrite, 'a' to append).",
+          "description": "Mode for writing the file, e.g., 'w' for write, 'a' for append",
           "required": false,
           "default": "w"
-        },
-        {
-          "name": "encoding",
-          "type": "string",
-          "description": "The file encoding to use.",
-          "required": false,
-          "default": "utf-8"
         }
       ],
       "returns": {
         "type": "string",
-        "description": "A success message or an error message."
+        "description": "Confirmation message or error"
       },
-      "code": "def write_file(file_path, content, mode='w', encoding='utf-8'): try: with open(file_path, mode, encoding=encoding) as file: file.write(content) return 'File written successfully' except Exception as e: return f'Error writing file: {str(e)}'"
+      "code": "def write_file(file_path, content, mode='w'):\n    try:\n        with open(file_path, mode) as file:\n            file.write(content)\n        return 'Write successful'\n    except Exception as e:\n        return str(e)"
     },
     {
-      "id": "python_executor",
-      "name": "execute_python",
-      "description": "Execute a Python script and capture its output.",
+      "id": "code_analyzer",
+      "name": "analyze_python_code",
+      "description": "Analyze Python code for bugs and suggest fixes",
       "parameters": [
         {
           "name": "code",
           "type": "string",
-          "description": "The Python code to execute.",
+          "description": "Python code to analyze",
           "required": true
         }
       ],
       "returns": {
-        "type": "string",
-        "description": "The output of the executed code or an error message."
+        "type": "object",
+        "description": "Analysis results with suggestions for fixing bugs"
       },
-      "code": "def execute_python(code): import subprocess try: result = subprocess.run(['python', '-c', code], capture_output=True, text=True) return result.stdout if result.returncode == 0 else result.stderr except Exception as e: return f'Error executing Python code: {str(e)}'"
+      "code": "def analyze_python_code(code):\n    # Placeholder for Python code analysis logic\n    return {'valid': True, 'suggestions': []}"
     }
   ]
 }

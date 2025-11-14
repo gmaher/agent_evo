@@ -8,9 +8,11 @@ from agent_evo.llm.client import LLMClient
 class TeamRunner:
     """Orchestrates a team of agents working together."""
     
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: LLMClient, output_dir: str = ".", ignored_files=None):
         self.llm_client = llm_client
-        self.agent_runner = AgentRunner(llm_client)
+        self.output_dir = output_dir
+        self.ignored_files = ignored_files
+        self.agent_runner = AgentRunner(llm_client, output_dir, ignored_files=ignored_files)
     
     def run_team(self, 
                  team: Team,

@@ -6,16 +6,72 @@ from agent_evo.core.tool_executor import ToolExecutor
 from agent_evo.prompts.agent import AGENT_SYSTEM_PROMPT, DELEGATION_INSTRUCTIONS
 from agent_evo.utils.parser import ToolCallParser
 from agent_evo.llm.client import LLMClient
+import os
 
 
 class AgentRunner:
     """Runs an agent with tool execution capabilities."""
     
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: LLMClient, output_dir: str = ".", ignored_files:Optional[set]=None):
         self.llm_client = llm_client
         self.tool_executor = ToolExecutor()
         self.parser = ToolCallParser()
         self.default_tools = get_default_tools()  # Load default tools
+        self.output_dir = output_dir
+        self.ignored_files = ignored_files
+
+    def _read_directory_structure(self, path: str = None, prefix: str = "") -> str:
+        """Recursively read directory structure, ignoring specific files."""
+        if path is None:
+            path = self.output_dir
+        
+        if self.ignored_files is None:
+            self.ignored_files = {"agents.json", "tools.json", "team.json"}
+        
+        structure_lines = []
+        
+        try:
+            # Get all items in directory
+            items = sorted(os.listdir(path))
+            
+            # Filter out ignored files
+            items = [item for item in items if item not in self.ignored_files]
+            
+            for i, item in enumerate(items):
+                item_path = os.path.join(path, item)
+                is_last = i == len(items) - 1
+                
+                # Determine the prefix characters
+                current_prefix = "└── " if is_last else "├── "
+                next_prefix = "    " if is_last else "│   "
+                
+                if os.path.isdir(item_path):
+                    structure_lines.append(f"{prefix}{current_prefix}{item}/")
+                    # Recursively add subdirectory contents
+                    sub_structure = self._read_directory_structure(
+                        item_path, 
+                        prefix + next_prefix,
+                    )
+                    if sub_structure:
+                        structure_lines.append(sub_structure)
+                else:
+                    structure_lines.append(f"{prefix}{current_prefix}{item}")
+            
+            return "\n".join(structure_lines)
+        
+        except Exception as e:
+            return f"Error reading directory: {str(e)}"
+    
+    def _build_directory_info(self) -> str:
+        """Build the directory information section."""
+        structure = self._read_directory_structure()
+        
+        return f"""=== Current Directory Structure ===
+Working Directory: {self.output_dir}
+
+{structure}
+
+================================"""
     
     def run_agent(self, 
                   agent: Agent, 
@@ -65,7 +121,7 @@ class AgentRunner:
         # Initialize conversation
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Build the user message with chat history if provided
+        # Build the user message with chat history and directory structure
         user_message = self._build_task_message(task, chat_history)
         messages.append({"role": "user", "content": user_message})
 
@@ -90,7 +146,77 @@ class AgentRunner:
             )
             print(f"\nASSISTANT ({agent.name}):\n{response}")
             
-            # Check for delegation first
+            # Parse response for tool calls first
+            cleaned_response, tool_calls = self.parser.parse_response(response)
+            
+            # Execute tool calls if any
+            tool_results = []
+            if tool_calls:
+                for tool_call in tool_calls:
+                    tool_name = tool_call["tool"]
+                    arguments = tool_call["arguments"]
+                    
+                    # Find the tool
+                    matching_tools = [
+                        tool for tool in available_tools.values() 
+                        if tool.name == tool_name
+                    ]
+                    
+                    if not matching_tools:
+                        tool_results.append({
+                            "tool": tool_name,
+                            "error": f"Tool '{tool_name}' not found"
+                        })
+                        continue
+                    
+                    tool = matching_tools[0]
+                    
+                    # Validate arguments
+                    error = self.tool_executor.validate_arguments(tool, arguments)
+                    if error:
+                        tool_results.append({
+                            "tool": tool_name,
+                            "error": error
+                        })
+                        continue
+                    
+                    # Execute tool
+                    result = self.tool_executor.execute_tool(tool, arguments)
+                    tool_results.append({
+                        "tool": tool_name,
+                        "arguments": arguments,
+                        "result": result
+                    })
+                
+                # Add assistant message with tool calls
+                messages.append({"role": "assistant", "content": response})
+                
+                # Add tool results as user message (with updated directory structure)
+                results_message = self._format_tool_results_with_directory(tool_results)
+                print(f"\nUSER (tools): {results_message}")
+                messages.append({"role": "user", "content": results_message})
+                
+                # Record this iteration with tool calls
+                history.append({
+                    "iteration": iteration,
+                    "response": response,
+                    "tool_calls": tool_calls,
+                    "finished": False
+                })
+                
+                # Check if all tools succeeded, otherwise let agent retry
+                all_success = all(
+                    r.get("result", {}).get("success", False) 
+                    for r in tool_results
+                )
+                
+                if not all_success and iteration <= agent.max_retries:
+                    continue
+                
+                # Continue to next iteration after tool execution
+                continue
+            
+            # No tool calls - check for delegation
             delegation = self._parse_delegation(response)
             if delegation:
                 messages.append({"role": "assistant", "content": response})
@@ -106,91 +232,24 @@ class AgentRunner:
             # Check if agent marked task as finished
             is_finished = self._is_finished(response)
             
-            # Parse response for tool calls
-            cleaned_response, tool_calls = self.parser.parse_response(response)
-            
+            # Record this iteration
             history.append({
                 "iteration": iteration,
                 "response": response,
-                "tool_calls": tool_calls,
+                "tool_calls": [],
                 "finished": is_finished
             })
             
-            # If no tool calls and marked as finished, we're done
-            if not tool_calls and is_finished:
-                messages.append({"role": "assistant", "content": response})
-                break
-            
-            # If no tool calls and not finished, prompt to continue
-            if not tool_calls and not is_finished:
-                messages.append({"role": "assistant", "content": response})
-                
-                # Prompt agent to continue or finish
-                continue_prompt = "You must either:\n1. Use the available tools to continue working on the task\n2. Delegate to another team member using [DELEGATE: agent_id]\n3. Mark your work as complete with <FINISHED>\n\nPlease continue or finish your turn."
-                print(f"\nUSER (continue prompt): {continue_prompt}")
-                messages.append({"role": "user", "content": continue_prompt})
-                continue
-            
-            # Execute tool calls
-            tool_results = []
-            for tool_call in tool_calls:
-                tool_name = tool_call["tool"]
-                arguments = tool_call["arguments"]
-                
-                # Find the tool
-                matching_tools = [
-                    tool for tool in available_tools.values() 
-                    if tool.name == tool_name
-                ]
-                
-                if not matching_tools:
-                    tool_results.append({
-                        "tool": tool_name,
-                        "error": f"Tool '{tool_name}' not found"
-                    })
-                    continue
-                
-                tool = matching_tools[0]
-                
-                # Validate arguments
-                error = self.tool_executor.validate_arguments(tool, arguments)
-                if error:
-                    tool_results.append({
-                        "tool": tool_name,
-                        "error": error
-                    })
-                    continue
-                
-                # Execute tool
-                result = self.tool_executor.execute_tool(tool, arguments)
-                tool_results.append({
-                    "tool": tool_name,
-                    "arguments": arguments,
-                    "result": result
-                })
-            
-            # Add assistant message with tool calls
-            messages.append({"role": "assistant", "content": response})
-            
-            # Add tool results as user message
-            results_message = self._format_tool_results(tool_results)
-            print(f"\nUSER (tools): {results_message}")
-
-            messages.append({"role": "user", "content": results_message})
-            
-            # If finished after tool execution, break
+            # If marked as finished, we're done
             if is_finished:
+                messages.append({"role": "assistant", "content": response})
                 break
             
-            # Check if all tools succeeded
-            all_success = all(
-                r.get("result", {}).get("success", False) 
-                for r in tool_results
-            )
-            
-            if not all_success and iteration <= agent.max_retries:
-                # Let agent retry
-                continue
+            # No tool calls, no delegation, not finished - prompt to continue
+            messages.append({"role": "assistant", "content": response})
+            continue_prompt = self._build_continue_prompt()
+            print(f"\nUSER (continue prompt): {continue_prompt}")
+            messages.append({"role": "user", "content": continue_prompt})
         
         return {
             "agent_id": agent.id,
@@ -256,17 +315,44 @@ class AgentRunner:
                     )
         return "\n\n".join(formatted)
     
+    def _format_tool_results_with_directory(self, results: List[Dict[str, Any]]) -> str:
+        """Format tool execution results with updated directory structure."""
+        results_text = self._format_tool_results(results)
+        directory_info = self._build_directory_info()
+        
+        return f"{results_text}\n\n{directory_info}"
+    
+    def _build_continue_prompt(self) -> str:
+        """Build continue prompt with directory structure."""
+        directory_info = self._build_directory_info()
+        
+        prompt = f"""{directory_info}
+
+You must either:
+1. Use the available tools to continue working on the task
+2. Delegate to another team member using [DELEGATE: agent_id]
+3. Mark your work as complete with <FINISHED>
+
+Please continue or finish your turn."""
+        
+        return prompt
+    
     def _build_task_message(self, task: str, chat_history: Optional[List[Dict[str, Any]]]) -> str:
-        """Build the initial task message with full chat history."""
+        """Build the initial task message with full chat history and directory structure."""
         message_parts = []
+        
+        # Add directory structure first
+        message_parts.append(self._build_directory_info())
         
         # Add chat history if provided
         if chat_history:
-            message_parts.append("=== Team Chat History ===")
+            message_parts.append("\n=== Team Chat History ===")
             for msg in chat_history:
                 agent_name = msg.get("agent_name", "Unknown")
                 content = msg.get("content", "")
                 message_parts.append(f"\n[{agent_name}]:\n{content}")
+            message_parts.append("\n=== Your Task ===")
+        else:
             message_parts.append("\n=== Your Task ===")
         
         # Add the actual task

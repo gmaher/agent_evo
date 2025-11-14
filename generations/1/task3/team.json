@@ -1,19 +1,29 @@
 {
-  "id": "project_alpha_analysis_team",
+  "id": "project_alpha_team",
   "name": "Project Alpha Analysis Team",
-  "description": "A specialized team for analyzing project documentation and synthesizing findings into structured markdown files.",
-  "agent_ids": ["document_analyst", "data_analyst", "summary_writer"],
+  "description": "A team designed to analyze and synthesize information about Project Alpha, culminating in an executive summary and incident analysis.",
+  "agent_ids": ["coordinator", "project_analyst", "data_analyst", "report_writer"],
   "edges": [
     {
-      "from": "document_analyst",
-      "to": "summary_writer",
-      "description": "Provide synthesized document analysis for summary creation"
+      "from": "coordinator",
+      "to": "project_analyst",
+      "description": "Delegate document analysis tasks"
+    },
+    {
+      "from": "coordinator",
+      "to": "data_analyst",
+      "description": "Delegate CSV data analysis tasks"
+    },
+    {
+      "from": "project_analyst",
+      "to": "report_writer",
+      "description": "Provide synthesized insights for report compilation"
     },
     {
       "from": "data_analyst",
-      "to": "summary_writer",
-      "description": "Deliver analyzed metrics data for integration into summaries"
+      "to": "report_writer",
+      "description": "Provide data analysis results for report compilation"
     }
   ],
-  "entry_point": "document_analyst"
+  "entry_point": "coordinator"
 }

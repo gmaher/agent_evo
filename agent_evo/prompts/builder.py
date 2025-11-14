@@ -258,4 +258,5 @@ Remember:
 4. Include all necessary parameters and error handling
 5. Make the team as sophisticated as needed while maintaining clarity
 
-Begin by understanding the task requirements, then design your team accordingly."""
+Begin by understanding the task requirements, then design your team accordingly.
+You ABSOLUTLEY must use the file_writer tool to create a team.json, agents.json and tools.json file."""

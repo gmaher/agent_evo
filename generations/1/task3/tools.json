@@ -3,29 +3,56 @@
     {
       "id": "file_reader",
       "name": "read_file",
-      "description": "Read content from a file with error handling for missing files.",
+      "description": "Reads content from a specified file.",
       "parameters": [
         {
           "name": "file_path",
           "type": "string",
-          "description": "Path to the file to be read",
+          "description": "Path to the file to read",
           "required": true
         },
         {
           "name": "encoding",
           "type": "string",
-          "description": "File encoding, default is 'utf-8'",
+          "description": "Encoding of the file",
           "required": false,
           "default": "utf-8"
         }
       ],
-      "returns": {"type": "string", "description": "File content or error message"},
-      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as file:\n            return file.read()\n    except FileNotFoundError:\n        return f'Error: File {file_path} not found'\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
+      "returns": {
+        "type": "string",
+        "description": "Content of the file or error message"
+      },
+      "code": "def read_file(file_path, encoding='utf-8'):\\n    try:\\n        with open(file_path, 'r', encoding=encoding) as f:\\n            return f.read()\\n    except Exception as e:\\n        return f'Error reading file {file_path}: {str(e)}'"
+    },
+    {
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Writes content to a specified file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to write",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "Content to write to the file",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Success message or error"
+      },
+      "code": "def write_file(file_path, content):\\n    try:\\n        with open(file_path, 'w') as f:\\n            f.write(content)\\n        return f'Successfully wrote to {file_path}'\\n    except Exception as e:\\n        return f'Error writing file {file_path}: {str(e)}'"
     },
     {
       "id": "csv_analyzer",
       "name": "analyze_csv",
-      "description": "Analyze CSV data to compute statistics and identify trends.",
+      "description": "Analyzes CSV data to compute failure rates and identify trends.",
       "parameters": [
         {
           "name": "file_path",
@@ -34,29 +61,11 @@
           "required": true
         }
       ],
-      "returns": {"type": "object", "description": "Analysis results including failure rates and trend comments"},
-      "code": "import pandas as pd\n\ndef analyze_csv(file_path):\n    try:\n        df = pd.read_csv(file_path)\n        df['failure_rate'] = df['failed'] / df['total']\n        trend = 'increasing' if df['failure_rate'].iloc[-1] > df['failure_rate'].iloc[0] else 'decreasing'\n        return {\n            'failure_rates': df[['date', 'failure_rate']].to_dict(orient='records'),\n            'trend': trend\n        }\n    except FileNotFoundError:\n        return {'error': f'Error: File {file_path} not found'}\n    except Exception as e:\n        return {'error': str(e)}"
-    },
-    {
-      "id": "markdown_writer",
-      "name": "write_markdown",
-      "description": "Write content to a markdown file with error handling.",
-      "parameters": [
-        {
-          "name": "file_path",
-          "type": "string",
-          "description": "Path for the markdown file",
-          "required": true
-        },
-        {
-          "name": "content",
-          "type": "string",
-          "description": "Markdown content to write",
-          "required": true
-        }
-      ],
-      "returns": {"type": "string", "description": "Success message or error"},
-      "code": "def write_markdown(file_path, content):\n    try:\n        with open(file_path, 'w') as file:\n            file.write(content)\n        return f'Successfully wrote content to {file_path}'\n    except Exception as e:\n        return f'Error writing markdown file: {str(e)}'"
+      "returns": {
+        "type": "object",
+        "description": "Failure rates per date and trend analysis"
+      },
+      "code": "import pandas as pd\\ndef analyze_csv(file_path):\\n    try:\\n        data = pd.read_csv(file_path)\\n        data['failure_rate'] = data['failed'] / data['total']\\n        trend = 'improving' if data['failure_rate'].iloc[-1] < data['failure_rate'].iloc[0] else 'worsening'\\n        return {'failure_rates': data[['date', 'failure_rate']].to_dict(orient='records'), 'trend': trend}\\n    except Exception as e:\\n        return f'Error analyzing CSV file {file_path}: {str(e)}'"
     }
   ]
 }

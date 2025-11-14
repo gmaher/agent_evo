@@ -1,34 +1,29 @@
 {
-  "id": "todo_app_team",
-  "name": "Todo App Development Team",
-  "description": "A specialized team for fixing and enhancing a Python todo application.",
-  "agent_ids": ["code_analyst", "python_developer", "documentation_specialist", "qa_tester"],
+  "id": "todo_fix_team",
+  "name": "Todo App Maintenance Team",
+  "description": "A team specialized in maintaining and enhancing a Python todo application by fixing bugs, adding features, and updating documentation.",
+  "agent_ids": ["code_diagnoser", "feature_developer", "documenter", "tester"],
   "edges": [
     {
-      "from": "code_analyst",
-      "to": "python_developer",
-      "description": "Pass bug report and suggestions for fixes."
+      "from": "code_diagnoser",
+      "to": "feature_developer",
+      "description": "After diagnosing the bug, delegate the implementation of fixes and features."
     },
     {
-      "from": "python_developer",
-      "to": "documentation_specialist",
-      "description": "Request updates to documentation after implementing changes."
+      "from": "feature_developer",
+      "to": "tester",
+      "description": "Upon implementing the fixes and new features, delegate the task of testing."
     },
     {
-      "from": "python_developer",
-      "to": "qa_tester",
-      "description": "Request testing of the application after implementation."
+      "from": "tester",
+      "to": "documenter",
+      "description": "After testing, delegate to the documenter to update the README and document changes."
     },
     {
-      "from": "documentation_specialist",
-      "to": "qa_tester",
-      "description": "Provide updated documentation for verification."
-    },
-    {
-      "from": "qa_tester",
-      "to": "python_developer",
-      "description": "Report back any issues found during testing."
+      "from": "tester",
+      "to": "feature_developer",
+      "description": "If issues are found during testing, return the task to the developer for fixes."
     }
   ],
-  "entry_point": "code_analyst"
+  "entry_point": "code_diagnoser"
 }

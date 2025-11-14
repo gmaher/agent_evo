@@ -9,7 +9,7 @@ class LLMClient(ABC):
     @abstractmethod
     def generate(self, 
                  messages: List[Dict[str, str]], 
-                 temperature: float = 0.7,
+                 temperature: float = 1.0,
                  max_tokens: Optional[int] = 8092) -> str:
         """Generate a response from the LLM."""
         pass
