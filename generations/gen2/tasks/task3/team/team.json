@@ -1,0 +1,44 @@
+{
+  "id": "project_alpha_team",
+  "name": "Project Alpha Analysis Team",
+  "description": "A team designed to analyze Project Alpha documentation, incidents and metrics.",
+  "agent_ids": ["task_analyst", "document_synthesizer", "incident_analyst", "metrics_analyst", "report_writer"],
+  "edges": [
+    {
+      "from": "task_analyst",
+      "to": "document_synthesizer",
+      "description": "Delegate document synthesis task"
+    },
+    {
+      "from": "task_analyst",
+      "to": "incident_analyst",
+      "description": "Delegate incident analysis task"
+    },
+    {
+      "from": "task_analyst",
+      "to": "metrics_analyst",
+      "description": "Delegate metrics analysis task"
+    },
+    {
+      "from": "document_synthesizer",
+      "to": "incident_analyst",
+      "description": "Provide documents insights for incident analysis"
+    },
+    {
+      "from": "document_synthesizer",
+      "to": "report_writer",
+      "description": "Provide document insights for report writing"
+    },
+    {
+      "from": "incident_analyst",
+      "to": "report_writer",
+      "description": "Provide incident analysis insights for report writing"
+    },
+    {
+      "from": "metrics_analyst",
+      "to": "report_writer",
+      "description": "Provide metrics analysis insights for report writing"
+    }
+  ],
+  "entry_point": "task_analyst"
+}

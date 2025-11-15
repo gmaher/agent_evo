@@ -1,0 +1,29 @@
+{
+  "id": "ai_factory_team",
+  "name": "AI Factory Team",
+  "description": "A team designed to analyze tasks, design teams, create tools, and validate solutions for various AI tasks.",
+  "agent_ids": ["task_analyst", "team_designer", "tool_developer", "validation_specialist"],
+  "edges": [
+    {
+      "from": "task_analyst",
+      "to": "team_designer",
+      "description": "Provide task analysis results for team design"
+    },
+    {
+      "from": "team_designer",
+      "to": "tool_developer",
+      "description": "Specify tools needed for task completion"
+    },
+    {
+      "from": "tool_developer",
+      "to": "validation_specialist",
+      "description": "Submit developed tools for validation"
+    },
+    {
+      "from": "validation_specialist",
+      "to": "team_designer",
+      "description": "Feedback on validation results to adjust team design if necessary"
+    }
+  ],
+  "entry_point": "task_analyst"
+}

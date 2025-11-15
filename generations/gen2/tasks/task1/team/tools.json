@@ -1,0 +1,103 @@
+{
+  "tools": [
+    {
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Read content from a file",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to read",
+          "required": true
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Content of the file"
+      },
+      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as file:\n            return file.read()\n    except Exception as e:\n        return str(e)"
+    },
+    {
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Write content to a file",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to write",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "Content to write to the file",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "description": "Mode for writing (e.g., 'w' for write, 'a' for append)",
+          "required": false,
+          "default": "w"
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Success message or error"
+      },
+      "code": "def write_file(file_path, content, mode='w', encoding='utf-8'):\n    try:\n        with open(file_path, mode, encoding=encoding) as file:\n            file.write(content)\n        return 'Success'\n    except Exception as e:\n        return str(e)"
+    },
+    {
+      "id": "python_analyzer",
+      "name": "analyze_python_code",
+      "description": "Analyze Python code for common issues",
+      "parameters": [
+        {
+          "name": "code",
+          "type": "string",
+          "description": "Python code to analyze",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "object",
+        "description": "Analysis results including errors and suggestions"
+      },
+      "code": "def analyze_python_code(code):\n    import ast\n    try:\n        ast.parse(code)\n        return {'valid': True, 'errors': []}\n    except SyntaxError as e:\n        return {'valid': False, 'errors': [str(e)]}"
+    },
+    {
+      "id": "python_runner",
+      "name": "run_python_script",
+      "description": "Run a Python script and capture output",
+      "parameters": [
+        {
+          "name": "script_path",
+          "type": "string",
+          "description": "Path to the Python script",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Output of the script or error message"
+      },
+      "code": "def run_python_script(script_path):\n    import subprocess\n    try:\n        result = subprocess.run(['python', script_path], capture_output=True, text=True)\n        return result.stdout if result.returncode == 0 else result.stderr\n    except Exception as e:\n        return str(e)"
+    }
+  ]
+}

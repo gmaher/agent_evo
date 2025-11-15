@@ -1,0 +1,21 @@
+Internal notes (not for customers):
+
+- Strongest value props:
+  * Reducing ramp-up time for new hires.
+  * Reducing errors in complex multi-step workflows.
+  * Making tribal knowledge explicit and shareable.
+
+- We often get compared to:
+  * RPA vendors (legacy, heavy, enterprise).
+  * Browser automation extensions.
+  * "AI agents" that try to operate the computer autonomously.
+
+- Concerns from prospects:
+  * "Will this break when the UI changes?"
+  * "How secure is it?"
+  * "Will non-technical users actually adopt it?"
+
+Questions for research:
+1. What are 2–3 notable competitors in desktop/web workflow automation or AI agents land?
+2. How do they position themselves (target users, key features, pricing hints)?
+3. What are common concerns / objections in this category?

@@ -1,0 +1,38 @@
+{
+  "start_time": "2025-11-14T19:20:04.951796",
+  "tasks_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks",
+  "model": "gpt-4o",
+  "tasks": [
+    {
+      "task_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task1",
+      "task_name": "task1",
+      "team_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task1/team",
+      "success": true,
+      "error": null,
+      "rounds": 1,
+      "agents_involved": 1
+    },
+    {
+      "task_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task3",
+      "task_name": "task3",
+      "team_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task3/team",
+      "success": true,
+      "error": null,
+      "rounds": 2,
+      "agents_involved": 2
+    },
+    {
+      "task_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task2",
+      "task_name": "task2",
+      "team_dir": "/home/gabriel/personal/projects/agent_evo/generations/gen2/tasks/task2/team",
+      "success": true,
+      "error": null,
+      "rounds": 3,
+      "agents_involved": 3
+    }
+  ],
+  "end_time": "2025-11-14T19:21:00.598944",
+  "total_tasks": 3,
+  "successful": 3,
+  "failed": 0
+}

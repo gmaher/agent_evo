@@ -1,0 +1,39 @@
+{
+  "id": "market_analysis_team",
+  "name": "Market Analysis Team",
+  "description": "A team dedicated to analyzing the market for workflow automation and AI agents.",
+  "agent_ids": ["coordinator", "research_agent", "file_reader_agent", "analyst_agent", "writer_agent"],
+  "edges": [
+    {
+      "from": "coordinator",
+      "to": "file_reader_agent",
+      "description": "Delegate the task of reading local company files."
+    },
+    {
+      "from": "coordinator",
+      "to": "research_agent",
+      "description": "Delegate the task of conducting web research on competitors."
+    },
+    {
+      "from": "file_reader_agent",
+      "to": "analyst_agent",
+      "description": "Provide company information extracted from local files."
+    },
+    {
+      "from": "research_agent",
+      "to": "analyst_agent",
+      "description": "Provide competitor information gathered from web research."
+    },
+    {
+      "from": "analyst_agent",
+      "to": "writer_agent",
+      "description": "Deliver synthesized insights for report writing."
+    },
+    {
+      "from": "coordinator",
+      "to": "writer_agent",
+      "description": "Ensure the report is compiled and finalized."
+    }
+  ],
+  "entry_point": "coordinator"
+}

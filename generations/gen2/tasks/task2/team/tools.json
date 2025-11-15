@@ -1,0 +1,77 @@
+{
+  "tools": [
+    {
+      "id": "web_search",
+      "name": "web_search",
+      "description": "Conducts a web search and returns the top results.",
+      "parameters": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "The search query.",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "description": "Maximum number of search results to return.",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "list",
+        "description": "List of search results including title and URL."
+      },
+      "code": "def web_search(query, limit=3):\n    import requests\n    url = 'https://api.example.com/search'\n    params = {'query': query, 'limit': limit}\n    try:\n        response = requests.get(url, params=params)\n        response.raise_for_status()\n        return response.json()['results']\n    except requests.exceptions.RequestException as e:\n        return f'Error during web search: {str(e)}'"
+    },
+    {
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Reads the contents of a file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "The path to the file.",
+          "required": true
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "The file encoding to use.",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Contents of the file."
+      },
+      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as file:\n            return file.read()\n    except FileNotFoundError:\n        return f'Error: File {file_path} not found'\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
+    },
+    {
+      "id": "report_writer",
+      "name": "write_report",
+      "description": "Writes a report to a specified file.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "The path to the file where the report will be written.",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "The content of the report.",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Success message or error."
+      },
+      "code": "def write_report(file_path, content):\n    try:\n        with open(file_path, 'w') as file:\n            file.write(content)\n        return f'Successfully wrote report to {file_path}'\n    except Exception as e:\n        return f'Error writing report: {str(e)}'"
+    }
+  ]
+}

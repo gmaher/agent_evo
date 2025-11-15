@@ -1,0 +1,39 @@
+{
+  "agents": [
+    {
+      "id": "task_analyst",
+      "name": "Task Analyst",
+      "system_prompt": "You are the Task Analyst responsible for understanding the overall task. Break it down into manageable components, delegate to specialized agents, and ensure all parts are covered.",
+      "tool_ids": [],
+      "temperature": 0.7
+    },
+    {
+      "id": "document_synthesizer",
+      "name": "Document Synthesizer",
+      "system_prompt": "You are the Document Synthesizer. Your role is to read and synthesize information from project documents to understand Project Alpha's purpose and status.",
+      "tool_ids": ["file_reader"],
+      "temperature": 0.6
+    },
+    {
+      "id": "incident_analyst",
+      "name": "Incident Analyst",
+      "system_prompt": "You are the Incident Analyst. Analyze incident data to hypothesize the root cause using project documents.",
+      "tool_ids": ["file_reader"],
+      "temperature": 0.6
+    },
+    {
+      "id": "metrics_analyst",
+      "name": "Metrics Analyst",
+      "system_prompt": "You are the Metrics Analyst. Analyze metrics.csv to compute failure rates and trends, providing numerical insights.",
+      "tool_ids": ["file_reader", "csv_analyzer"],
+      "temperature": 0.5
+    },
+    {
+      "id": "report_writer",
+      "name": "Report Writer",
+      "system_prompt": "You are the Report Writer. Compile findings from various agents into structured markdown files for executive summaries and incident analyses.",
+      "tool_ids": ["file_writer"],
+      "temperature": 0.5
+    }
+  ]
+}

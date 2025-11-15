@@ -1,0 +1,24 @@
+{
+  "id": "todo_app_team",
+  "name": "Todo App Development Team",
+  "description": "A team dedicated to diagnosing and fixing issues in a Python todo app, adding features, and updating documentation.",
+  "agent_ids": ["bug_diagnoser", "feature_developer", "documentation_specialist", "qa_tester"],
+  "edges": [
+    {
+      "from": "bug_diagnoser",
+      "to": "feature_developer",
+      "description": "After diagnosing the bug, delegate the implementation of the fix and new feature."
+    },
+    {
+      "from": "feature_developer",
+      "to": "qa_tester",
+      "description": "Submit the updated code for testing after implementing the feature."
+    },
+    {
+      "from": "qa_tester",
+      "to": "documentation_specialist",
+      "description": "Provide test results to the documentation specialist for documentation updates."
+    }
+  ],
+  "entry_point": "bug_diagnoser"
+}
