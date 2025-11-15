@@ -5,8 +5,10 @@ import CreateProjectModal from "../components/CreateProjectModal";
 import CreateTeamModal from "../components/CreateTeamModal";
 import CreateAgentModal from "../components/CreateAgentModal";
 import { Agent } from "../types";
+import CreateRunModal from "../components/CreateRunModal";
+import { Run } from "../types";
 
-type TabType = "projects" | "teams" | "agents";
+type TabType = "projects" | "teams" | "agents" | "runs";
 
 const Dashboard: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -18,6 +20,8 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [isRunModalOpen, setIsRunModalOpen] = useState(false);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -60,13 +64,28 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const fetchRuns = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:8000/runs/${username}`);
+      const data = await response.json();
+      setRuns(data);
+    } catch (error) {
+      console.error("Failed to fetch runs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "projects") {
       fetchProjects();
     } else if (activeTab === "teams") {
       fetchTeams();
-    } else {
+    } else if (activeTab === "agents") {
       fetchAgents();
+    } else if (activeTab === "runs") {
+      fetchRuns();
     }
   }, [username, activeTab]);
 
@@ -188,6 +207,62 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCreateRun = async (
+    teamId: string,
+    projectId: number,
+    runName: string
+  ) => {
+    try {
+      const response = await fetch(`http://localhost:8000/runs/${username}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          team_id: teamId,
+          project_id: projectId,
+          run_name: runName,
+        }),
+      });
+
+      if (response.ok) {
+        await fetchRuns();
+        setIsRunModalOpen(false);
+        setActiveTab("runs");
+      }
+    } catch (error) {
+      console.error("Failed to create run:", error);
+    }
+  };
+
+  const handleDeleteRun = async (runId: string) => {
+    if (!confirm("Are you sure you want to delete this run?")) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/runs/${username}/${runId}`,
+        { method: "DELETE" }
+      );
+
+      if (response.ok) {
+        await fetchRuns();
+      }
+    } catch (error) {
+      console.error("Failed to delete run:", error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "#28a745";
+      case "failed":
+        return "#dc3545";
+      case "running":
+        return "#ffc107";
+      default:
+        return "#6c757d";
+    }
+  };
+
   const tabStyle = (tab: TabType) => ({
     padding: "0.75rem 1.5rem",
     backgroundColor: activeTab === tab ? "#007bff" : "#f8f9fa",
@@ -219,6 +294,9 @@ const Dashboard: React.FC = () => {
           style={tabStyle("agents")}
         >
           Agents
+        </button>
+        <button onClick={() => setActiveTab("runs")} style={tabStyle("runs")}>
+          Runs
         </button>
       </div>
 
@@ -493,6 +571,111 @@ const Dashboard: React.FC = () => {
             isOpen={isAgentModalOpen}
             onClose={() => setIsAgentModalOpen(false)}
             onSubmit={handleCreateAgent}
+          />
+        </div>
+      )}
+
+      {/* Runs Tab */}
+      {activeTab === "runs" && (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "1rem",
+            }}
+          >
+            <h2 style={{ margin: 0 }}>Your Runs</h2>
+            <button
+              onClick={() => setIsRunModalOpen(true)}
+              style={{
+                padding: "0.5rem 1rem",
+                backgroundColor: "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Create Run
+            </button>
+          </div>
+
+          {loading ? (
+            <p>Loading runs...</p>
+          ) : runs.length === 0 ? (
+            <p>No runs yet. Create your first run!</p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {runs.map((run) => (
+                <li
+                  key={run.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    padding: "1rem",
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Link
+                    to={`/runs/${username}/${run.id}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "inherit",
+                      flex: 1,
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 0.5rem 0" }}>
+                        {run.run_name}
+                        <span
+                          style={{
+                            marginLeft: "0.5rem",
+                            padding: "0.25rem 0.5rem",
+                            backgroundColor: getStatusColor(run.status),
+                            color: "white",
+                            fontSize: "0.75rem",
+                            borderRadius: "4px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {run.status}
+                        </span>
+                      </h3>
+                      <p
+                        style={{ margin: 0, fontSize: "0.9rem", color: "#999" }}
+                      >
+                        {new Date(run.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => handleDeleteRun(run.id)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <CreateRunModal
+            isOpen={isRunModalOpen}
+            onClose={() => setIsRunModalOpen(false)}
+            onSubmit={handleCreateRun}
+            username={username!}
           />
         </div>
       )}

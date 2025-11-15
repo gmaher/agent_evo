@@ -1,6 +1,7 @@
 from typing import Dict, List, Any, Optional, Tuple
 from agent_evo.models.agent import Agent
 from agent_evo.models.default_tools import ToolDefinition, get_default_tools, get_tool_by_name
+from agent_evo.models.results import AgentResult, ChatMessage
 from agent_evo.models.tool import Tool
 from agent_evo.core.tool_executor import ToolExecutor
 from agent_evo.core.filesystem import FileSystem
@@ -39,8 +40,8 @@ Working Directory: .
                   agent: Agent, 
                   task: str, 
                   available_agents: Optional[List[str]] = None,
-                  chat_history: Optional[List[Dict[str, Any]]] = None,
-                  max_iterations: int = 10) -> Dict[str, Any]:
+                  chat_history: Optional[List[ChatMessage]] = None,
+                  max_iterations: int = 10) -> AgentResult:
         """
         Run an agent on a task with available tools.
         Returns the final response, execution history, and delegation info.
@@ -209,16 +210,16 @@ Working Directory: .
             print(f"\nUSER (continue prompt): {continue_prompt}")
             messages.append({"role": "user", "content": continue_prompt})
         
-        return {
-            "agent_id": agent.id,
-            "agent_name": agent.name,
-            "final_response": messages[-2]["content"] if len(messages) > 2 else "No response",
-            "history": history,
-            "messages": messages[1:],  # Exclude system message
-            "iterations": iteration,
-            "delegation": delegation,
-            "finished": is_finished
-        }
+        return AgentResult(
+            agent_id=agent.id,
+            agent_name=agent.name,
+            final_response=messages[-2]["content"] if len(messages) > 2 else "No response",
+            history=history,
+            messages=messages[1:],  # Exclude system message
+            iterations=iteration,
+            delegation=delegation,
+            finished=is_finished
+        )
     
     def _parse_delegation(self, response: str) -> Optional[Dict[str, str]]:
         """Parse delegation from agent response."""
@@ -294,7 +295,7 @@ Please continue or finish your turn."""
         
         return prompt
     
-    def _build_task_message(self, task: str, chat_history: Optional[List[Dict[str, Any]]]) -> str:
+    def _build_task_message(self, task: str, chat_history: Optional[List[ChatMessage]]) -> str:
         """Build the initial task message with full chat history and directory structure."""
         message_parts = []
         
@@ -305,9 +306,7 @@ Please continue or finish your turn."""
         if chat_history:
             message_parts.append("\n=== Team Chat History ===")
             for msg in chat_history:
-                agent_name = msg.get("agent_name", "Unknown")
-                content = msg.get("content", "")
-                message_parts.append(f"\n[{agent_name}]:\n{content}")
+                message_parts.append(f"\n[{msg.agent_name}]:\n{msg.content}")
             message_parts.append("\n=== Your Task ===")
         else:
             message_parts.append("\n=== Your Task ===")

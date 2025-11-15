@@ -1,5 +1,6 @@
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+from agent_evo.models.results import ChatMessage, ExecutionEntry, TeamResult
 from agent_evo.models.team import Team
 from agent_evo.models.agent import Agent
 from agent_evo.core.agent_runner import AgentRunner
@@ -23,7 +24,7 @@ class TeamRunner:
                  team: Team,
                  task: str,
                  agents: Dict[str, Agent],
-                 max_rounds: int = 10) -> Dict[str, Any]:
+                 max_rounds: int = 10) -> TeamResult:
         """
         Run a team of agents on a task.
         """
@@ -37,8 +38,9 @@ class TeamRunner:
         
         
         # Maintain full chat history across all agents
-        chat_history = []
-        execution_history = []
+        chat_history: List[ChatMessage] = []
+        execution_history: List[ExecutionEntry] = []
+        
         
         # Start with entry point agent
         current_agent_id = team.entry_point
@@ -60,7 +62,7 @@ class TeamRunner:
             # Get agents this agent can delegate to
             available_agents = team.get_neighbors(current_agent_id)
             
-            # Run the agent with full chat history (no tools parameter needed)
+            # Run the agent with full chat history
             result = self.agent_runner.run_agent(
                 agent=agent,
                 task=current_task,
@@ -69,24 +71,25 @@ class TeamRunner:
             )
             
             # Add agent's messages to chat history
-            for msg in result["messages"]:
-                chat_history.append({
-                    "agent_id": current_agent_id,
-                    "agent_name": agent.name,
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
+            for msg in result.messages:
+                chat_history.append(ChatMessage(
+                    agent_id=current_agent_id,
+                    agent_name=agent.name,
+                    role=msg["role"],
+                    content=msg["content"]
+                ))
             
-            execution_history.append({
-                "round": round_num,
-                "agent_id": current_agent_id,
-                "agent_name": agent.name,
-                "task": current_task,
-                "result": result
-            })
+            # Add to execution history
+            execution_history.append(ExecutionEntry(
+                round=round_num,
+                agent_id=current_agent_id,
+                agent_name=agent.name,
+                task=current_task,
+                result=result
+            ))
             
             # Check if agent delegated to another agent
-            delegation = result.get("delegation")
+            delegation = result.delegation
             if delegation:
                 delegated_agent_id = delegation["to_agent"]
                 
@@ -124,7 +127,7 @@ class TeamRunner:
                     
                     # Continue with next agent, passing along the current context
                     current_agent_id = next_agent_id
-                    current_task = f"Continue the work from {agent.name}. Previous output: {result['final_response'][:200]}..."
+                    current_task = f"Continue the work from {agent.name}. Previous output: {result.final_response[:200]}..."
                 else:
                     # All neighbors visited or no neighbors left
                     print(f"\n{'='*60}")
@@ -133,18 +136,16 @@ class TeamRunner:
                     print(f"{'='*60}")
                     break
         
-        # Extract final outputs from chat history
+        # Extract final outputs from execution history
         agent_outputs = {}
         for entry in execution_history:
-            agent_id = entry["agent_id"]
-            final_response = entry["result"]["final_response"]
-            agent_outputs[agent_id] = final_response
+            agent_outputs[entry.agent_id] = entry.result.final_response
         
-        return {
-            "team_id": team.id,
-            "team_name": team.name,
-            "execution_history": execution_history,
-            "chat_history": chat_history,
-            "agent_outputs": agent_outputs,
-            "rounds": round_num + 1
-        }
+        return TeamResult(
+            team_id=team.id,
+            team_name=team.name,
+            execution_history=execution_history,
+            chat_history=chat_history,
+            agent_outputs=agent_outputs,
+            rounds=round_num + 1
+        )

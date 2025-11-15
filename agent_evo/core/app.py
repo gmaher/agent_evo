@@ -127,15 +127,53 @@ class AgentEvoApp:
             max_rounds=max_rounds
         )
         
-        print(f"\nTeam execution completed in {result['rounds']} rounds")
+        print(f"\nTeam execution completed in {result.rounds} rounds")
+        
+        # Convert result to dictionary for serialization
+        result_dict = self._team_result_to_dict(result)
         
         # Save result to filesystem if requested
         if save_result:
-            result_json = json.dumps(result, indent=2, default=str)
+            result_json = json.dumps(result_dict, indent=2, default=str)
             self.filesystem.write_file("output.json", result_json)
             print(f"\nResults saved to output.json in filesystem")
         
-        return result
+        return result_dict
+    
+    def _team_result_to_dict(self, result) -> Dict[str, Any]:
+        """Convert TeamResult to dictionary for serialization."""
+        return {
+            "team_id": result.team_id,
+            "team_name": result.team_name,
+            "rounds": result.rounds,
+            "agent_outputs": result.agent_outputs,
+            "execution_history": [
+                {
+                    "round": entry.round,
+                    "agent_id": entry.agent_id,
+                    "agent_name": entry.agent_name,
+                    "task": entry.task,
+                    "result": {
+                        "agent_id": entry.result.agent_id,
+                        "agent_name": entry.result.agent_name,
+                        "final_response": entry.result.final_response,
+                        "iterations": entry.result.iterations,
+                        "delegation": entry.result.delegation,
+                        "finished": entry.result.finished
+                    }
+                }
+                for entry in result.execution_history
+            ],
+            "chat_history": [
+                {
+                    "agent_id": msg.agent_id,
+                    "agent_name": msg.agent_name,
+                    "role": msg.role,
+                    "content": msg.content
+                }
+                for msg in result.chat_history
+            ]
+        }
     
     def get_filesystem_files(self) -> Dict[str, str]:
         """Get all files from the in-memory filesystem."""
@@ -332,3 +370,46 @@ class AgentEvoApp:
                 print(f"Warning: Could not load {relative_str}: {e}")
         
         return files_loaded
+    
+    def run_project(
+        self,
+        project_files: Dict[str, str],
+        project_description: str,
+        team: Team,
+        agents: Dict[str, Agent],
+        max_rounds: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Run a team on a project.
+        
+        Args:
+            project_files: Dictionary of filename -> content for project files
+            project_description: Description of the project (used as task)
+            team: Team configuration
+            agents: Dictionary of agents
+            max_rounds: Maximum number of delegation rounds
+        
+        Returns:
+            Execution result dictionary
+        """
+        # Clear filesystem and load project files
+        self.clear_filesystem()
+        
+        for filename, content in project_files.items():
+            self.filesystem.write_file(filename, content)
+        
+        print(f"\nLoaded {len(project_files)} project files into filesystem")
+        
+        # Run the team with project description as task
+        result = self.run_team(
+            team=team,
+            task=project_description,
+            agents=agents,
+            max_rounds=max_rounds,
+            save_result=True
+        )
+        
+        # Include modified/created files in result
+        result["modified_files"] = self.get_filesystem_files()
+        
+        return result

@@ -1,10 +1,21 @@
-from typing import List
+import sys
+import os
+sys.path.append(os.path.abspath("../.."))
+
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+import uuid
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
 
 from pydantic import BaseModel
 from pymongo import MongoClient
+
+# Convert agents to Agent objects
+from agent_evo.models.agent import Agent as EvoAgent
+from agent_evo.core.app import AgentEvoApp
+from agent_evo.models.team import Team as EvoTeam, TeamEdge as EvoTeamEdge
 
 app = FastAPI()
 
@@ -85,6 +96,56 @@ class TeamWithAgents(BaseModel):
     entry_point: str
     agents: List[Agent]
 
+# Run result models matching AgentEvo structure
+class ChatMessage(BaseModel):
+    agent_id: str
+    agent_name: str
+    role: str
+    content: str
+
+class Delegation(BaseModel):
+    to_agent: str
+    task: str
+
+class AgentResult(BaseModel):
+    agent_id: str
+    agent_name: str
+    final_response: str
+    iterations: int
+    delegation: Optional[Delegation] = None
+    finished: bool = False
+
+class ExecutionEntry(BaseModel):
+    round: int
+    agent_id: str
+    agent_name: str
+    task: str
+    result: AgentResult
+
+class TeamResult(BaseModel):
+    team_id: str
+    team_name: str
+    rounds: int
+    agent_outputs: Dict[str, str]
+    execution_history: List[ExecutionEntry]
+    chat_history: List[ChatMessage]
+    modified_files: Optional[Dict[str, str]] = None
+
+class Run(BaseModel):
+    id: str
+    username: str
+    team_id: str
+    project_id: int
+    run_name: str
+    timestamp: str
+    status: str  # "running", "completed", "failed"
+    result: Dict[str, Any] = {}  # Can be TeamResult or error dict
+
+class RunCreate(BaseModel):
+    team_id: str
+    project_id: int
+    run_name: str = "Untitled Run"
+
 # Mongo
 MONGO_URI = "mongodb://localhost:27017"
 client = MongoClient(MONGO_URI)
@@ -93,6 +154,7 @@ db = client["evo_agents"]
 projects_collection = db["projects"]
 teams_collection = db["teams"]
 agents_collection = db["agents"]
+runs_collection = db["runs"]  # Add runs collection
 
 ######################
 # Project Routes
@@ -460,3 +522,173 @@ def update_team(username: str, team_id: str, team: TeamCreate):
         edges=team.edges,
         entry_point=team.entry_point,
     )
+
+######################
+# Run Routes
+######################
+
+@app.post("/runs/{username}", response_model=Run)
+def create_run(username: str, run_request: RunCreate):
+    """Create and execute a new run."""
+    
+    # Validate project exists
+    project_doc = projects_collection.find_one({
+        "username": username,
+        "id": run_request.project_id
+    })
+    if not project_doc:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Validate team exists and get agents
+    team_doc = teams_collection.find_one({
+        "username": username,
+        "id": run_request.team_id
+    })
+    if not team_doc:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    # Get all agents for the team
+    agent_ids = team_doc.get("agent_ids", [])
+    agent_docs = list(agents_collection.find({
+        "username": username,
+        "id": {"$in": agent_ids}
+    }))
+    
+    if len(agent_docs) != len(agent_ids):
+        raise HTTPException(status_code=400, detail="One or more agents not found")
+    
+    # Create run record
+    run_id = str(uuid.uuid4())
+    run_doc = {
+        "id": run_id,
+        "username": username,
+        "team_id": run_request.team_id,
+        "project_id": run_request.project_id,
+        "run_name": run_request.run_name,
+        "timestamp": datetime.utcnow().isoformat(),
+        "status": "running",
+        "result": {}
+    }
+    runs_collection.insert_one(run_doc)
+    
+    try:
+        # Initialize AgentEvoApp
+        app_instance = AgentEvoApp()
+        
+        # Convert project files to dict
+        project_files = {
+            f["filename"]: f["content"] 
+            for f in project_doc.get("files", [])
+        }
+        
+        
+        agents = {
+            doc["id"]: EvoAgent(
+                id=doc["id"],
+                name=doc["name"],
+                system_prompt=doc["system_prompt"],
+                tool_names=doc.get("tool_names", []),
+                model=doc.get("model", "gpt-4o"),
+                temperature=doc.get("temperature", 1.0),
+                max_retries=doc.get("max_retries", 3)
+            )
+            for doc in agent_docs
+        }
+        
+        # Convert team to Team object
+        team = EvoTeam(
+            id=team_doc["id"],
+            name=team_doc["name"],
+            description=team_doc["description"],
+            agent_ids=team_doc["agent_ids"],
+            edges=[
+                EvoTeamEdge(
+                    from_agent=edge.get("from_agent") or edge.get("from"),  # Handle both field names
+                    to_agent=edge.get("to_agent") or edge.get("to"),
+                    description=edge.get("description")
+                )
+                for edge in team_doc.get("edges", [])
+            ],
+            entry_point=team_doc["entry_point"]
+        )
+        
+        # Run the team
+        result = app_instance.run_project(
+            project_files=project_files,
+            project_description=project_doc.get("description", ""),
+            team=team,
+            agents=agents,
+            max_rounds=10
+        )
+        
+        # Update run with results
+        runs_collection.update_one(
+            {"id": run_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "result": result
+                }
+            }
+        )
+        
+        run_doc["status"] = "completed"
+        run_doc["result"] = result
+        
+    except Exception as e:
+        # Mark run as failed
+        runs_collection.update_one(
+            {"id": run_id},
+            {
+                "$set": {
+                    "status": "failed",
+                    "result": {"error": str(e)}
+                }
+            }
+        )
+        raise HTTPException(status_code=500, detail=f"Run failed: {str(e)}")
+    
+    return Run(**run_doc)
+
+
+@app.get("/runs/{username}", response_model=List[Run])
+def get_runs(username: str, project_id: Optional[int] = None, team_id: Optional[str] = None):
+    """Get all runs for a user, optionally filtered by project or team."""
+    query = {"username": username}
+    
+    if project_id is not None:
+        query["project_id"] = project_id
+    if team_id is not None:
+        query["team_id"] = team_id
+    
+    docs = list(runs_collection.find(query).sort("timestamp", -1))
+    
+    return [Run(**doc) for doc in docs]
+
+
+@app.get("/runs/{username}/{run_id}", response_model=Run)
+def get_run(username: str, run_id: str):
+    """Get a specific run."""
+    doc = runs_collection.find_one({
+        "username": username,
+        "id": run_id
+    })
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    return Run(**doc)
+
+
+@app.delete("/runs/{username}/{run_id}")
+def delete_run(username: str, run_id: str):
+    """Delete a run."""
+    result = runs_collection.delete_one({
+        "username": username,
+        "id": run_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    return {"message": "Run deleted successfully"}

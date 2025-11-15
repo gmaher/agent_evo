@@ -4,8 +4,8 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import ProjectDetail from "./pages/ProjectDetail";
 import TeamDetail from "./pages/TeamDetail";
-
 import AgentDetail from "./pages/AgentDetail";
+import RunDetail from "./pages/RunDetail";
 
 const App: React.FC = () => {
   return (
@@ -19,6 +19,7 @@ const App: React.FC = () => {
         />
         <Route path="/teams/:username/:teamId" element={<TeamDetail />} />
         <Route path="/agents/:username/:agentId" element={<AgentDetail />} />
+        <Route path="/runs/:username/:runId" element={<RunDetail />} />
       </Routes>
     </div>
   );
