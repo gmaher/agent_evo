@@ -1,0 +1,65 @@
+{
+  "tools": [
+    {
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Read content from a file with proper error handling",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to be read",
+          "required": true
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "Encoding of the file, default is utf-8",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Content of the file or error message"
+      },
+      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as f:\n            return f.read()\n    except FileNotFoundError:\n        return f'Error: File {file_path} not found'\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
+    },
+    {
+      "id": "csv_analyzer",
+      "name": "analyze_csv",
+      "description": "Analyze CSV data to compute failure rates and trends",
+      "parameters": [
+        {
+          "name": "csv_content",
+          "type": "string",
+          "description": "CSV content as a string",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "object",
+        "description": "Analysis results including failure rates and trends"
+      },
+      "code": "import csv\nimport io\n\ndef analyze_csv(csv_content):\n    reader = csv.DictReader(io.StringIO(csv_content))\n    results = {}\n    for row in reader:\n        date = row['date']\n        failed = int(row['failed'])\n        total = int(row['total'])\n        failure_rate = failed / total if total > 0 else 0\n        results[date] = {'failed': failed, 'total': total, 'failure_rate': failure_rate}\n    trend = 'improving' if all(results[date]['failure_rate'] <= results.get(previous_date, {}).get('failure_rate', 1) for date, previous_date in zip(list(results)[1:], list(results)[:-1])) else 'worsening'\n    return {'failure_rates': results, 'trend': trend}"
+    },
+    {
+      "id": "text_synthesizer",
+      "name": "synthesize_text",
+      "description": "Synthesize text from multiple documents into a cohesive narrative",
+      "parameters": [
+        {
+          "name": "documents",
+          "type": "list",
+          "description": "List of document contents to synthesize",
+          "required": true
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Synthesized narrative"
+      },
+      "code": "def synthesize_text(documents):\n    combined = '\\n'.join(documents)\n    # Basic synthesis logic: This is a placeholder for more complex NLP-based synthesis\n    if 'incident' in combined:\n        return 'Incident analysis with inferred causes based on provided documents.'\n    return 'Synthesis complete but no incidents found.'"
+    }
+  ]
+}

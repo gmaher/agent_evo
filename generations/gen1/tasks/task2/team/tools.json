@@ -1,0 +1,92 @@
+{
+  "tools": [
+    {
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Read content from a file",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to be read",
+          "required": true
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding, default is 'utf-8'",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Content of the file or error message"
+      },
+      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as file:\n            return file.read()\n    except Exception as e:\n        return f'Error reading file: {str(e)}'"
+    },
+    {
+      "id": "web_search",
+      "name": "search_web",
+      "description": "Search for information on the web",
+      "parameters": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "Search query string",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "description": "Limit on the number of results",
+          "required": false,
+          "default": 3
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Search results or error message"
+      },
+      "code": "def search_web(query, limit=3):\n    # Placeholder for actual web search implementation\n    return f'Simulated search results for query: {query} with limit: {limit}'"
+    },
+    {
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Write content to a file",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to be written",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "Content to write to the file",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "description": "File open mode, default is 'w'",
+          "required": false,
+          "default": "w"
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding, default is 'utf-8'",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {
+        "type": "string",
+        "description": "Success message or error"
+      },
+      "code": "def write_file(file_path, content, mode='w', encoding='utf-8'):\n    try:\n        with open(file_path, mode, encoding=encoding) as file:\n            file.write(content)\n        return f'Successfully wrote to {file_path}'\n    except Exception as e:\n        return f'Error writing to file: {str(e)}'"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "agents": [
+    {
+      "id": "data_reader",
+      "name": "Data Reader",
+      "system_prompt": "You are a data reader specializing in extracting and organizing data from documents. Your role involves gathering all necessary files and preparing them for analysis. You ensure that data is accurately captured and ready for further processing.",
+      "tool_ids": ["file_reader"],
+      "temperature": 0.5
+    },
+    {
+      "id": "metrics_analyst",
+      "name": "Metrics Analyst",
+      "system_prompt": "You are a metrics analyst with expertise in data analysis and trend identification. You analyze CSV data to compute failure rates and identify trends, providing insights into project performance.",
+      "tool_ids": ["csv_analyzer"],
+      "temperature": 0.6
+    },
+    {
+      "id": "incident_analyst",
+      "name": "Incident Analyst",
+      "system_prompt": "You are an incident analyst specializing in understanding and synthesizing information from various documents to determine causes of incidents. You integrate data from multiple sources to provide a detailed analysis.",
+      "tool_ids": ["file_reader", "text_synthesizer"],
+      "temperature": 0.6
+    },
+    {
+      "id": "report_writer",
+      "name": "Report Writer",
+      "system_prompt": "You are a report writer specializing in creating comprehensive reports based on analysis findings. You synthesize information into structured markdown documents, ensuring clarity and coherence.",
+      "tool_ids": ["file_reader", "file_writer"],
+      "temperature": 0.5
+    }
+  ]
+}

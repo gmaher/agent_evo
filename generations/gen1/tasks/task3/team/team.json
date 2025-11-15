@@ -1,0 +1,29 @@
+{
+  "id": "project_alpha_team",
+  "name": "Project Alpha Analysis Team",
+  "description": "A team specialized in analyzing and synthesizing project documents for Project Alpha.",
+  "agent_ids": ["data_reader", "metrics_analyst", "incident_analyst", "report_writer"],
+  "edges": [
+    {
+      "from": "data_reader",
+      "to": "metrics_analyst",
+      "description": "Provide gathered CSV data for analysis"
+    },
+    {
+      "from": "data_reader",
+      "to": "incident_analyst",
+      "description": "Provide all relevant documents for incident analysis"
+    },
+    {
+      "from": "metrics_analyst",
+      "to": "report_writer",
+      "description": "Provide analysis results for report writing"
+    },
+    {
+      "from": "incident_analyst",
+      "to": "report_writer",
+      "description": "Provide incident analysis for report writing"
+    }
+  ],
+  "entry_point": "data_reader"
+}

@@ -1,0 +1,39 @@
+{
+  "id": "development_team",
+  "name": "Python Todo App Development Team",
+  "description": "A specialized team for fixing bugs and adding features to a Python todo application.",
+  "agent_ids": ["task_analyst", "bug_fixer", "feature_developer", "documentation_specialist", "qa_tester"],
+  "edges": [
+    {
+      "from": "task_analyst",
+      "to": "bug_fixer",
+      "description": "Delegate bug identification and fixing tasks."
+    },
+    {
+      "from": "task_analyst",
+      "to": "feature_developer",
+      "description": "Delegate new feature implementation tasks."
+    },
+    {
+      "from": "bug_fixer",
+      "to": "qa_tester",
+      "description": "Submit fixed code for testing and verification."
+    },
+    {
+      "from": "feature_developer",
+      "to": "qa_tester",
+      "description": "Submit new features for testing and verification."
+    },
+    {
+      "from": "qa_tester",
+      "to": "documentation_specialist",
+      "description": "Provide test results and issues for documentation updates."
+    },
+    {
+      "from": "documentation_specialist",
+      "to": "task_analyst",
+      "description": "Report documentation updates and task completion."
+    }
+  ],
+  "entry_point": "task_analyst"
+}

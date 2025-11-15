@@ -1,0 +1,29 @@
+{
+  "id": "market_analysis_team",
+  "name": "Market Analysis Team",
+  "description": "A team dedicated to analyzing the workflow automation and AI agents market.",
+  "agent_ids": ["task_analyst", "research_analyst", "content_integrator", "report_writer"],
+  "edges": [
+    {
+      "from": "task_analyst",
+      "to": "research_analyst",
+      "description": "Delegate competitor and market research tasks."
+    },
+    {
+      "from": "task_analyst",
+      "to": "content_integrator",
+      "description": "Delegate the task of integrating local and web data."
+    },
+    {
+      "from": "research_analyst",
+      "to": "report_writer",
+      "description": "Provide researched data for report compilation."
+    },
+    {
+      "from": "content_integrator",
+      "to": "report_writer",
+      "description": "Provide integrated content for final report writing."
+    }
+  ],
+  "entry_point": "task_analyst"
+}

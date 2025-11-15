@@ -18,12 +18,7 @@ def main():
     parser.add_argument(
         "--tasks-dir",
         required=True,
-        help="Directory containing subdirectories with task.txt files"
-    )
-    parser.add_argument(
-        "--input-dir",
-        required=True,
-        help="Directory containing tools.json, agents.json, and team.json"
+        help="Directory containing subdirectories with task.txt files and team/ folders"
     )
     parser.add_argument("--model", default="gpt-4o", help="LLM model to use")
     parser.add_argument("--max-rounds", type=int, default=10, help="Maximum rounds per task")
@@ -32,21 +27,23 @@ def main():
     args = parser.parse_args()
     
     try:
-        tasks_dir = Path(args.tasks_dir)
+        original_dir = os.getcwd()
+        tasks_dir = Path(os.path.abspath(args.tasks_dir))
         
         if not tasks_dir.exists():
             raise FileNotFoundError(f"Tasks directory not found: {tasks_dir}")
         
-        # Find all subdirectories with task.txt
+        # Find all subdirectories with task.txt and team/ folder
         task_dirs = []
         for subdir in tasks_dir.iterdir():
             if subdir.is_dir():
                 task_file = subdir / "task.txt"
-                if task_file.exists():
+                team_dir = subdir / "team"
+                if task_file.exists() and team_dir.exists() and team_dir.is_dir():
                     task_dirs.append(subdir)
         
         if not task_dirs:
-            print(f"No subdirectories with task.txt found in {tasks_dir}")
+            print(f"No subdirectories with task.txt and team/ folder found in {tasks_dir}")
             return
         
         print(f"Found {len(task_dirs)} tasks to process")
@@ -56,7 +53,6 @@ def main():
         batch_results = {
             "start_time": datetime.now().isoformat(),
             "tasks_dir": str(tasks_dir),
-            "input_dir": args.input_dir,
             "model": args.model,
             "tasks": []
         }
@@ -64,6 +60,7 @@ def main():
         # Process each task
         for i, task_dir in enumerate(task_dirs, 1):
             task_file = task_dir / "task.txt"
+            team_dir = task_dir / "team"
             
             print(f"\n[{i}/{len(task_dirs)}] Processing: {task_dir.name}")
             print("-"*60)
@@ -71,6 +68,7 @@ def main():
             task_result = {
                 "task_dir": str(task_dir),
                 "task_name": task_dir.name,
+                "team_dir": str(team_dir),
                 "success": False,
                 "error": None
             }
@@ -82,17 +80,10 @@ def main():
                     output_dir=str(task_dir)
                 )
                 
-                # Change to task directory
-                original_dir = os.getcwd()
-                os.chdir(task_dir)
-                
-                if args.verbose:
-                    print(f"Working directory: {task_dir.absolute()}")
-                
                 try:
                     # Run team
                     result = app.run_from_directory(
-                        team_dir=args.input_dir,
+                        team_dir=str(team_dir),
                         task_path=str(task_file),
                         max_rounds=args.max_rounds,
                         verbose=args.verbose

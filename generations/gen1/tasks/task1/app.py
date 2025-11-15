@@ -13,10 +13,9 @@ def load_todos():
 
 
 def save_todos(todos):
-    # BUG: this function is never actually writing to disk correctly
-    # (Hint: think about file modes / json.dump usage)
-    open(DATA_FILE, "w")
-    json.dumps(todos)
+    # Correctly open the file in write mode and use json.dump
+    with open(DATA_FILE, "w") as f:
+        json.dump(todos, f)
 
 
 def list_todos():
@@ -47,11 +46,23 @@ def mark_done(idx):
     print(f"Marked todo #{idx} as done")
 
 
+def delete_todo(idx):
+    todos = load_todos()
+    try:
+        removed_todo = todos.pop(idx - 1)
+        print(f"Deleted todo #{idx}: {removed_todo['text']}")
+    except IndexError:
+        print("Invalid todo ID")
+        return
+    save_todos(todos)
+
+
 def print_help():
     print("Usage:")
     print("  python app.py add \"Todo text\"")
     print("  python app.py list")
     print("  python app.py done <id>")
+    print("  python app.py delete <id>")
 
 
 def main():
@@ -79,6 +90,16 @@ def main():
             print("ID must be an integer.")
             return
         mark_done(idx)
+    elif command == "delete":
+        if len(sys.argv) < 3:
+            print("Please provide an ID.")
+            return
+        try:
+            idx = int(sys.argv[2])
+        except ValueError:
+            print("ID must be an integer.")
+            return
+        delete_todo(idx)
     else:
         print_help()
 
