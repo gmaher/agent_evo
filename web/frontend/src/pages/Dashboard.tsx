@@ -7,8 +7,10 @@ import CreateAgentModal from "../components/CreateAgentModal";
 import { Agent } from "../types";
 import CreateRunModal from "../components/CreateRunModal";
 import { Run } from "../types";
+import CreateEvolutionModal from "../components/CreateEvolutionModal";
+import { Evolution } from "../types";
 
-type TabType = "projects" | "teams" | "agents" | "runs";
+type TabType = "projects" | "teams" | "agents" | "runs" | "evolutions";
 
 const Dashboard: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -22,6 +24,8 @@ const Dashboard: React.FC = () => {
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [runs, setRuns] = useState<Run[]>([]);
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
+  const [evolutions, setEvolutions] = useState<Evolution[]>([]);
+  const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -77,6 +81,21 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const fetchEvolutions = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:8000/evolutions/${username}`
+      );
+      const data = await response.json();
+      setEvolutions(data);
+    } catch (error) {
+      console.error("Failed to fetch evolutions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "projects") {
       fetchProjects();
@@ -86,6 +105,8 @@ const Dashboard: React.FC = () => {
       fetchAgents();
     } else if (activeTab === "runs") {
       fetchRuns();
+    } else if (activeTab === "evolutions") {
+      fetchEvolutions();
     }
   }, [username, activeTab]);
 
@@ -250,6 +271,52 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCreateEvolution = async (
+    projectId: number,
+    maxRounds: number,
+    K: number
+  ) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/evolutions/${username}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            project_id: projectId,
+            max_rounds: maxRounds,
+            K: K,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchEvolutions();
+        setIsEvolutionModalOpen(false);
+        setActiveTab("evolutions");
+      }
+    } catch (error) {
+      console.error("Failed to create evolution:", error);
+    }
+  };
+
+  const handleDeleteEvolution = async (evolutionId: string) => {
+    if (!confirm("Are you sure you want to delete this evolution?")) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/evolutions/${username}/${evolutionId}`,
+        { method: "DELETE" }
+      );
+
+      if (response.ok) {
+        await fetchEvolutions();
+      }
+    } catch (error) {
+      console.error("Failed to delete evolution:", error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -297,6 +364,12 @@ const Dashboard: React.FC = () => {
         </button>
         <button onClick={() => setActiveTab("runs")} style={tabStyle("runs")}>
           Runs
+        </button>
+        <button
+          onClick={() => setActiveTab("evolutions")}
+          style={tabStyle("evolutions")}
+        >
+          Evolutions
         </button>
       </div>
 
@@ -675,6 +748,122 @@ const Dashboard: React.FC = () => {
             isOpen={isRunModalOpen}
             onClose={() => setIsRunModalOpen(false)}
             onSubmit={handleCreateRun}
+            username={username!}
+          />
+        </div>
+      )}
+
+      {/* Evolutions Tab */}
+      {activeTab === "evolutions" && (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "1rem",
+            }}
+          >
+            <h2 style={{ margin: 0 }}>Your Evolutions</h2>
+            <button
+              onClick={() => setIsEvolutionModalOpen(true)}
+              style={{
+                padding: "0.5rem 1rem",
+                backgroundColor: "#6f42c1",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Create Evolution
+            </button>
+          </div>
+
+          {loading ? (
+            <p>Loading evolutions...</p>
+          ) : evolutions.length === 0 ? (
+            <p>No evolutions yet. Create your first evolution!</p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              {evolutions.map((evolution) => (
+                <li
+                  key={evolution.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    padding: "1rem",
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Link
+                    to={`/evolutions/${username}/${evolution.id}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "inherit",
+                      flex: 1,
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 0.5rem 0" }}>
+                        Evolution - Project #{evolution.project_id}
+                        <span
+                          style={{
+                            marginLeft: "0.5rem",
+                            padding: "0.25rem 0.5rem",
+                            backgroundColor: getStatusColor(evolution.status),
+                            color: "white",
+                            fontSize: "0.75rem",
+                            borderRadius: "4px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {evolution.status}
+                        </span>
+                      </h3>
+                      <p
+                        style={{ margin: 0, fontSize: "0.9rem", color: "#999" }}
+                      >
+                        {evolution.team_ids.length} teams | Generation{" "}
+                        {evolution.generation} | Max Rounds:{" "}
+                        {evolution.max_rounds}
+                      </p>
+                      <p
+                        style={{
+                          margin: "0.25rem 0 0 0",
+                          fontSize: "0.85rem",
+                          color: "#999",
+                        }}
+                      >
+                        {new Date(evolution.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => handleDeleteEvolution(evolution.id)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <CreateEvolutionModal
+            isOpen={isEvolutionModalOpen}
+            onClose={() => setIsEvolutionModalOpen(false)}
+            onSubmit={handleCreateEvolution}
             username={username!}
           />
         </div>

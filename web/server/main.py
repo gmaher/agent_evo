@@ -16,6 +16,9 @@ from pymongo import MongoClient
 from agent_evo.models.agent import Agent as EvoAgent
 from agent_evo.core.app import AgentEvoApp
 from agent_evo.models.team import Team as EvoTeam, TeamEdge as EvoTeamEdge
+from agent_evo.core.one_shot_builder import OneShotBuilder
+from agent_evo.llm.client import OpenAIClient
+from agent_evo.core.one_shot_judge import OneShotJudge
 
 app = FastAPI()
 
@@ -140,11 +143,46 @@ class Run(BaseModel):
     timestamp: str
     status: str  # "running", "completed", "failed"
     result: Dict[str, Any] = {}  # Can be TeamResult or error dict
+    score: Optional[float] = None  # Add score field
+    score_reasoning: Optional[str] = None  # Add reasoning field
 
 class RunCreate(BaseModel):
     team_id: str
     project_id: int
     run_name: str = "Untitled Run"
+
+
+class Evolution(BaseModel):
+    id: str
+    username: str
+    project_id: int
+    team_ids: List[str]
+    run_ids: List[str] = []  # Add run_ids field
+    max_rounds: int
+    K: int
+    timestamp: str
+    status: str  # "generating", "completed", "failed"
+    generation: int = 0  # Current generation number
+
+class EvolutionWithRuns(BaseModel):
+    id: str
+    username: str
+    project_id: int
+    team_ids: List[str]
+    run_ids: List[str] = []
+    max_rounds: int
+    K: int
+    timestamp: str
+    status: str
+    generation: int = 0
+    runs: List[Run] = []  # Add runs field
+
+
+class EvolutionCreate(BaseModel):
+    project_id: int
+    max_rounds: int = 10
+    K: int = 5  # Number of initial teams to generate
+
 
 # Mongo
 MONGO_URI = "mongodb://localhost:27017"
@@ -155,6 +193,7 @@ projects_collection = db["projects"]
 teams_collection = db["teams"]
 agents_collection = db["agents"]
 runs_collection = db["runs"]  # Add runs collection
+evolutions_collection = db["evolutions"]
 
 ######################
 # Project Routes
@@ -567,13 +606,20 @@ def create_run(username: str, run_request: RunCreate):
         "run_name": run_request.run_name,
         "timestamp": datetime.utcnow().isoformat(),
         "status": "running",
-        "result": {}
+        "result": {},
+        "score": None,
+        "score_reasoning": None
     }
     runs_collection.insert_one(run_doc)
     
     try:
-        # Initialize AgentEvoApp
-        app_instance = AgentEvoApp()
+        # Initialize AgentEvoApp and LLM client
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Missing OPENAI_API_KEY")
+        
+        llm_client = OpenAIClient(api_key=api_key, model="gpt-4o")
+        app_instance = AgentEvoApp(llm_client=llm_client)
         
         # Convert project files to dict
         project_files = {
@@ -581,7 +627,7 @@ def create_run(username: str, run_request: RunCreate):
             for f in project_doc.get("files", [])
         }
         
-        
+        # Convert agents to Agent objects
         agents = {
             doc["id"]: EvoAgent(
                 id=doc["id"],
@@ -603,7 +649,7 @@ def create_run(username: str, run_request: RunCreate):
             agent_ids=team_doc["agent_ids"],
             edges=[
                 EvoTeamEdge(
-                    from_agent=edge.get("from_agent") or edge.get("from"),  # Handle both field names
+                    from_agent=edge.get("from_agent") or edge.get("from"),
                     to_agent=edge.get("to_agent") or edge.get("to"),
                     description=edge.get("description")
                 )
@@ -621,19 +667,75 @@ def create_run(username: str, run_request: RunCreate):
             max_rounds=10
         )
         
-        # Update run with results
+        # Score the run using OneShotJudge
+        judge = OneShotJudge(llm_client)
+        
+        # Convert result to TeamResult for judge
+        from agent_evo.models.results import TeamResult, ExecutionEntry, AgentResult, ChatMessage
+        
+        team_result = TeamResult(
+            team_id=result["team_id"],
+            team_name=result["team_name"],
+            execution_history=[
+                ExecutionEntry(
+                    round=entry["round"],
+                    agent_id=entry["agent_id"],
+                    agent_name=entry["agent_name"],
+                    task=entry["task"],
+                    result=AgentResult(
+                        agent_id=entry["result"]["agent_id"],
+                        agent_name=entry["result"]["agent_name"],
+                        final_response=entry["result"]["final_response"],
+                        history=[],
+                        messages=[],
+                        iterations=entry["result"]["iterations"],
+                        delegation=entry["result"].get("delegation"),
+                        finished=entry["result"]["finished"]
+                    )
+                )
+                for entry in result["execution_history"]
+            ],
+            chat_history=[
+                ChatMessage(
+                    agent_id=msg["agent_id"],
+                    agent_name=msg["agent_name"],
+                    role=msg["role"],
+                    content=msg["content"]
+                )
+                for msg in result["chat_history"]
+            ],
+            agent_outputs=result["agent_outputs"],
+            rounds=result["rounds"]
+        )
+        
+        # Get modified files
+        modified_files = result.get("modified_files", {})
+        
+        # Judge the team performance
+        judge_result = judge.judge_team(
+            task=project_doc.get("description", ""),
+            team_result=team_result,
+            files=modified_files,
+            temperature=0.3
+        )
+        
+        # Update run with results and score
         runs_collection.update_one(
             {"id": run_id},
             {
                 "$set": {
                     "status": "completed",
-                    "result": result
+                    "result": result,
+                    "score": judge_result["score"],
+                    "score_reasoning": judge_result["reasoning"]
                 }
             }
         )
         
         run_doc["status"] = "completed"
         run_doc["result"] = result
+        run_doc["score"] = judge_result["score"]
+        run_doc["score_reasoning"] = judge_result["reasoning"]
         
     except Exception as e:
         # Mark run as failed
@@ -692,3 +794,344 @@ def delete_run(username: str, run_id: str):
         raise HTTPException(status_code=404, detail="Run not found")
     
     return {"message": "Run deleted successfully"}
+
+######################
+# Evolution Routes
+######################
+
+@app.get("/evolutions/{username}", response_model=List[Evolution])
+def get_evolutions(username: str, project_id: Optional[int] = None):
+    """Get all evolutions for a user, optionally filtered by project."""
+    query = {"username": username}
+    
+    if project_id is not None:
+        query["project_id"] = project_id
+    
+    docs = list(evolutions_collection.find(query).sort("timestamp", -1))
+    
+    return [Evolution(**doc) for doc in docs]
+
+
+@app.get("/evolutions/{username}/{evolution_id}", response_model=EvolutionWithRuns)
+def get_evolution(username: str, evolution_id: str):
+    """Get a specific evolution with its runs."""
+    doc = evolutions_collection.find_one({
+        "username": username,
+        "id": evolution_id
+    })
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Evolution not found")
+    
+    # Fetch all runs for this evolution
+    run_ids = doc.get("run_ids", [])
+    runs = []
+    if run_ids:
+        run_docs = list(runs_collection.find({
+            "username": username,
+            "id": {"$in": run_ids}
+        }))
+        runs = [Run(**run_doc) for run_doc in run_docs]
+    
+    return EvolutionWithRuns(
+        id=doc["id"],
+        username=doc["username"],
+        project_id=doc["project_id"],
+        team_ids=doc.get("team_ids", []),
+        run_ids=doc.get("run_ids", []),
+        max_rounds=doc["max_rounds"],
+        K=doc["K"],
+        timestamp=doc["timestamp"],
+        status=doc["status"],
+        generation=doc.get("generation", 0),
+        runs=runs
+    )
+
+
+@app.post("/evolutions/{username}", response_model=Evolution)
+def create_evolution(username: str, evolution_request: EvolutionCreate):
+    """Create a new evolution and generate K initial teams."""
+    
+    # Validate project exists
+    project_doc = projects_collection.find_one({
+        "username": username,
+        "id": evolution_request.project_id
+    })
+    if not project_doc:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Create evolution record
+    evolution_id = str(uuid.uuid4())
+    evolution_doc = {
+        "id": evolution_id,
+        "username": username,
+        "project_id": evolution_request.project_id,
+        "team_ids": [],
+        "run_ids": [],  # Initialize run_ids
+        "max_rounds": evolution_request.max_rounds,
+        "K": evolution_request.K,
+        "timestamp": datetime.utcnow().isoformat(),
+        "status": "generating",
+        "generation": 0
+    }
+    evolutions_collection.insert_one(evolution_doc)
+    
+    try:
+        # Initialize LLM client and one-shot builder
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Missing OPENAI_API_KEY")
+        
+        llm_client = OpenAIClient(api_key=api_key, model="gpt-4o")
+        builder = OneShotBuilder(llm_client)
+        judge = OneShotJudge(llm_client)  # Initialize judge
+        
+        # Generate task from project description
+        task = project_doc.get("description", "")
+        if not task:
+            raise HTTPException(
+                status_code=400,
+                detail="Project must have a description to generate teams"
+            )
+        
+        # Initialize AgentEvoApp for running teams
+        app_instance = AgentEvoApp(llm_client=llm_client)
+        
+        # Convert project files to dict
+        project_files = {
+            f["filename"]: f["content"] 
+            for f in project_doc.get("files", [])
+        }
+        
+        # Generate K teams and run each one
+        generated_team_ids = []
+        generated_run_ids = []  # Track run IDs
+        
+        for i in range(evolution_request.K):
+            print(f"Generating team {i+1}/{evolution_request.K}...")
+            
+            # Build team using one-shot builder
+            result = builder.build_team(task, temperature=0.8)
+            
+            # Create team ID
+            team_id = str(uuid.uuid4())
+            
+            # Store agents and track ID mapping
+            agent_id_mapping = {}
+            agents_for_run = {}
+            
+            for old_id, agent in result["agents"].items():
+                new_agent_id = str(uuid.uuid4())
+                
+                # Store in database
+                agent_doc = {
+                    "id": new_agent_id,
+                    "username": username,
+                    "name": agent.name,
+                    "system_prompt": agent.system_prompt,
+                    "tool_names": agent.tool_names,
+                    "model": agent.model,
+                    "temperature": agent.temperature,
+                    "max_retries": agent.max_retries,
+                }
+                agents_collection.insert_one(agent_doc)
+                
+                # Track mapping and create EvoAgent for running
+                agent_id_mapping[old_id] = new_agent_id
+                agents_for_run[new_agent_id] = EvoAgent(
+                    id=new_agent_id,
+                    name=agent.name,
+                    system_prompt=agent.system_prompt,
+                    tool_names=agent.tool_names,
+                    model=agent.model,
+                    temperature=agent.temperature,
+                    max_retries=agent.max_retries
+                )
+            
+            # Store team with updated agent IDs
+            team = result["team"]
+            team_doc = {
+                "id": team_id,
+                "username": username,
+                "name": f"{team.name} (Gen 0 - Team {i+1})",
+                "description": team.description,
+                "agent_ids": [agent_id_mapping[aid] for aid in team.agent_ids],
+                "edges": [
+                    {
+                        "from_agent": agent_id_mapping[edge.from_agent],
+                        "to_agent": agent_id_mapping[edge.to_agent],
+                        "description": edge.description
+                    }
+                    for edge in team.edges
+                ],
+                "entry_point": agent_id_mapping[team.entry_point],
+            }
+            teams_collection.insert_one(team_doc)
+            generated_team_ids.append(team_id)
+            
+            # Create EvoTeam for running
+            team_for_run = EvoTeam(
+                id=team_id,
+                name=team_doc["name"],
+                description=team_doc["description"],
+                agent_ids=team_doc["agent_ids"],
+                edges=[
+                    EvoTeamEdge(
+                        from_agent=edge["from_agent"],
+                        to_agent=edge["to_agent"],
+                        description=edge.get("description")
+                    )
+                    for edge in team_doc["edges"]
+                ],
+                entry_point=team_doc["entry_point"]
+            )
+            
+            # Run the team against the project
+            print(f"Running team {i+1}/{evolution_request.K}...")
+            run_id = str(uuid.uuid4())
+            run_doc = {
+                "id": run_id,
+                "username": username,
+                "team_id": team_id,
+                "project_id": evolution_request.project_id,
+                "run_name": f"{team.name} - Initial Run",
+                "timestamp": datetime.utcnow().isoformat(),
+                "status": "running",
+                "result": {},
+                "score": None,
+                "score_reasoning": None
+            }
+            runs_collection.insert_one(run_doc)
+            generated_run_ids.append(run_id)  # Track run ID
+            
+            try:
+                # Run the team
+                run_result = app_instance.run_project(
+                    project_files=project_files,
+                    project_description=project_doc.get("description", ""),
+                    team=team_for_run,
+                    agents=agents_for_run,
+                    max_rounds=evolution_request.max_rounds
+                )
+                
+                # Score the run using OneShotJudge
+                from agent_evo.models.results import TeamResult, ExecutionEntry, AgentResult, ChatMessage
+                
+                team_result = TeamResult(
+                    team_id=run_result["team_id"],
+                    team_name=run_result["team_name"],
+                    execution_history=[
+                        ExecutionEntry(
+                            round=entry["round"],
+                            agent_id=entry["agent_id"],
+                            agent_name=entry["agent_name"],
+                            task=entry["task"],
+                            result=AgentResult(
+                                agent_id=entry["result"]["agent_id"],
+                                agent_name=entry["result"]["agent_name"],
+                                final_response=entry["result"]["final_response"],
+                                history=[],
+                                messages=[],
+                                iterations=entry["result"]["iterations"],
+                                delegation=entry["result"].get("delegation"),
+                                finished=entry["result"]["finished"]
+                            )
+                        )
+                        for entry in run_result["execution_history"]
+                    ],
+                    chat_history=[
+                        ChatMessage(
+                            agent_id=msg["agent_id"],
+                            agent_name=msg["agent_name"],
+                            role=msg["role"],
+                            content=msg["content"]
+                        )
+                        for msg in run_result["chat_history"]
+                    ],
+                    agent_outputs=run_result["agent_outputs"],
+                    rounds=run_result["rounds"]
+                )
+                
+                # Get modified files
+                modified_files = run_result.get("modified_files", {})
+                
+                # Judge the team performance
+                judge_result = judge.judge_team(
+                    task=project_doc.get("description", ""),
+                    team_result=team_result,
+                    files=modified_files,
+                    temperature=0.3
+                )
+                
+                # Update run with results and score
+                runs_collection.update_one(
+                    {"id": run_id},
+                    {
+                        "$set": {
+                            "status": "completed",
+                            "result": run_result,
+                            "score": judge_result["score"],
+                            "score_reasoning": judge_result["reasoning"]
+                        }
+                    }
+                )
+                print(f"Team {i+1}/{evolution_request.K} run completed with score: {judge_result['score']}/10")
+                
+            except Exception as run_error:
+                # Mark run as failed but continue with other teams
+                runs_collection.update_one(
+                    {"id": run_id},
+                    {
+                        "$set": {
+                            "status": "failed",
+                            "result": {"error": str(run_error)}
+                        }
+                    }
+                )
+                print(f"Team {i+1}/{evolution_request.K} run failed: {str(run_error)}")
+        
+        # Update evolution with generated teams and runs
+        evolutions_collection.update_one(
+            {"id": evolution_id},
+            {
+                "$set": {
+                    "team_ids": generated_team_ids,
+                    "run_ids": generated_run_ids,  # Store run IDs
+                    "status": "completed"
+                }
+            }
+        )
+        
+        evolution_doc["team_ids"] = generated_team_ids
+        evolution_doc["run_ids"] = generated_run_ids
+        evolution_doc["status"] = "completed"
+        
+        print(f"\nEvolution created with {len(generated_team_ids)} teams")
+        print(f"All teams have been run and scored against the project")
+        
+    except Exception as e:
+        # Mark evolution as failed
+        evolutions_collection.update_one(
+            {"id": evolution_id},
+            {"$set": {"status": "failed"}}
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create evolution: {str(e)}"
+        )
+    
+    return Evolution(**evolution_doc)
+
+
+@app.delete("/evolutions/{username}/{evolution_id}")
+def delete_evolution(username: str, evolution_id: str):
+    """Delete an evolution."""
+    result = evolutions_collection.delete_one({
+        "username": username,
+        "id": evolution_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Evolution not found")
+    
+    return {"message": "Evolution deleted successfully"}

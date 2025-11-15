@@ -154,6 +154,47 @@ const RunDetail: React.FC = () => {
         </button>
       </div>
 
+      {/* Score Display - Show if completed and score exists */}
+      {isCompleted && run.score !== null && run.score !== undefined && (
+        <div
+          style={{
+            backgroundColor: "#f8f9fa",
+            padding: "1.5rem",
+            borderRadius: "8px",
+            marginBottom: "2rem",
+            border: "2px solid #007bff",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div>
+              <h2 style={{ margin: "0 0 0.5rem 0" }}>Performance Score</h2>
+              <div
+                style={{
+                  fontSize: "3rem",
+                  fontWeight: "bold",
+                  color:
+                    run.score >= 7
+                      ? "#28a745"
+                      : run.score >= 4
+                      ? "#ffc107"
+                      : "#dc3545",
+                }}
+              >
+                {run.score}/10
+              </div>
+            </div>
+            {run.score_reasoning && (
+              <div style={{ flex: 1, marginLeft: "2rem" }}>
+                <h4 style={{ margin: "0 0 0.5rem 0" }}>Reasoning</h4>
+                <p style={{ margin: 0, color: "#666", lineHeight: "1.6" }}>
+                  {run.score_reasoning}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Run Info */}
       <div
         style={{

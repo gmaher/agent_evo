@@ -86,4 +86,18 @@ export interface Run {
   timestamp: string;
   status: "running" | "completed" | "failed";
   result: TeamResult | { error: string };
+  score?: number; // Add score field
+  score_reasoning?: string; // Add reasoning field
+}
+
+export interface Evolution {
+  id: string;
+  username: string;
+  project_id: number;
+  team_ids: string[];
+  max_rounds: number;
+  K: number;
+  timestamp: string;
+  status: "generating" | "completed" | "failed";
+  generation: number;
 }

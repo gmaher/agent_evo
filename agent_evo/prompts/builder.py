@@ -1,8 +1,10 @@
+from agent_evo.core.filesystem import FileSystem
 from agent_evo.models.default_tools import get_default_tools
 
 def format_available_tools() -> str:
     """Format available tools into a readable string for prompts."""
-    tools = get_default_tools()
+    filesys = FileSystem() #mock for description
+    tools = get_default_tools(filesys)
     
     tool_descriptions = []
     for tool_id, tool_def in tools.items():
@@ -213,3 +215,81 @@ Remember:
 
 Begin by understanding the task requirements, then design your team accordingly.
 You ABSOLUTLEY must use the write_file tool to create a team.json and agents.json files."""
+
+
+ONE_SHOT_BUILD_PROMPT = """You are an AI team builder. Your job is to design and create a team of AI agents that can solve the following task:
+
+=== TASK ===
+{task}
+
+=== YOUR OBJECTIVE ===
+Analyze the task and output TWO JSON configurations:
+1. An agents.json defining the agents with appropriate system prompts and tool access
+2. A team.json defining the team structure and delegation flow
+
+=== GUIDELINES ===
+
+**Agent Design:**
+- Give each agent a clear, focused role with specific expertise
+- System prompts should be detailed (5+ sentences) including:
+  * The agent's expertise and background
+  * How they should approach problems
+  * Their communication style
+  * When they should delegate vs handle tasks themselves
+- Agents should have access only to tools relevant to their role
+- Temperature between 0.5-0.8 depending on creativity needed
+
+**Team Structure:**
+- Design a logical flow from requirements gathering to implementation
+- Entry point should be an agent that can understand and break down the task
+- Create clear handoff points between agents
+- Avoid cycles - design a directed acyclic graph when possible
+- Each edge should represent a meaningful delegation with clear purpose
+
+=== AVAILABLE TOOLS ===
+{available_tools}
+
+=== JSON SCHEMAS ===
+
+**agents.json Schema:**
+{{
+  "agents": [
+    {{
+      "id": "string (unique identifier)",
+      "name": "string (agent display name)",
+      "system_prompt": "string (detailed agent personality and instructions)",
+      "tool_names": ["string (tool id)", ...],
+      "temperature": number (0.0 to 1.0, default 0.7),
+      "max_retries": number (optional, default 3)
+    }}
+  ]
+}}
+
+**team.json Schema:**
+{{
+  "id": "string (unique identifier)",
+  "name": "string (team display name)",
+  "description": "string (team purpose)",
+  "agent_ids": ["string (agent id)", ...],
+  "edges": [
+    {{
+      "from": "string (source agent id)",
+      "to": "string (target agent id)",
+      "description": "string (delegation purpose)"
+    }}
+  ],
+  "entry_point": "string (starting agent id)"
+}}
+
+=== OUTPUT FORMAT ===
+
+Output your response with both JSON configurations in markdown code blocks:
+
+```json agents.json
+{{ your agents configuration }}
+```
+
+```json team.json
+{{ your team configuration }}
+```
+Do NOT include any other text or explanations. Output ONLY the two JSON code blocks."""

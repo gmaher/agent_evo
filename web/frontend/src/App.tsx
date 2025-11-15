@@ -6,6 +6,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import TeamDetail from "./pages/TeamDetail";
 import AgentDetail from "./pages/AgentDetail";
 import RunDetail from "./pages/RunDetail";
+import EvolutionDetail from "./pages/EvolutionDetail";
 
 const App: React.FC = () => {
   return (
@@ -20,6 +21,10 @@ const App: React.FC = () => {
         <Route path="/teams/:username/:teamId" element={<TeamDetail />} />
         <Route path="/agents/:username/:agentId" element={<AgentDetail />} />
         <Route path="/runs/:username/:runId" element={<RunDetail />} />
+        <Route
+          path="/evolutions/:username/:evolutionId"
+          element={<EvolutionDetail />}
+        />
       </Routes>
     </div>
   );
