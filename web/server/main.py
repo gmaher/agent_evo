@@ -18,28 +18,20 @@ app.add_middleware(
 )
 
 # Models
-class Project(BaseModel):
-    id: int
-    name: str
-    description: str
-
-class ProjectCreate(BaseModel):
-    name: str
-    description: str
-
 class File(BaseModel):
     filename: str
     content: str
 
-class Task(BaseModel):
+class Project(BaseModel):
     id: int
-    project_id: int
+    name: str
     description: str
-    files: List[File]
+    files: List[File] = []
 
-class TaskCreate(BaseModel):
+class ProjectCreate(BaseModel):
+    name: str
     description: str
-    files: List[File]
+    files: List[File] = []
 
 class Agent(BaseModel):
     id: str
@@ -59,7 +51,7 @@ class AgentCreate(BaseModel):
     max_retries: int = 3
 
 class TeamEdge(BaseModel):
-    from_agent: str = None  # Allow "from" as field name
+    from_agent: str = None
     to_agent: str = None
     description: str = None
     
@@ -99,49 +91,51 @@ client = MongoClient(MONGO_URI)
 
 db = client["evo_agents"]
 projects_collection = db["projects"]
-tasks_collection = db["tasks"]
 teams_collection = db["teams"]
 agents_collection = db["agents"]
 
-
 ######################
-# Routes
+# Project Routes
 ######################
 @app.get("/projects/{username}", response_model=List[Project])
 def get_projects(username: str):
-    # Find all docs for this username
     docs = list(projects_collection.find({"username": username}))
 
     if not docs:
-        # Optional: return default projects if none exist in DB
-        return [
-            Project(
-                id=1,
-                name=f"{username}'s First Project",
-                description="This is an example project for this demo.",
-            ),
-            Project(
-                id=2,
-                name="Second Project",
-                description="Another sample project.",
-            ),
-        ]
+        return []
 
-    # Map MongoDB docs to Pydantic Project models
     projects = [
         Project(
             id=doc.get("id", 0),
             name=doc.get("name", ""),
             description=doc.get("description", ""),
+            files=[File(**f) for f in doc.get("files", [])],
         )
         for doc in docs
     ]
     return projects
 
 
+@app.get("/projects/{username}/{project_id}", response_model=Project)
+def get_project(username: str, project_id: int):
+    doc = projects_collection.find_one({
+        "username": username,
+        "id": project_id
+    })
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return Project(
+        id=doc.get("id", 0),
+        name=doc.get("name", ""),
+        description=doc.get("description", ""),
+        files=[File(**f) for f in doc.get("files", [])],
+    )
+
+
 @app.post("/projects/{username}", response_model=Project)
 def create_project(username: str, project: ProjectCreate):
-    # Get the highest existing ID for this user
     existing_projects = list(projects_collection.find({"username": username}))
     max_id = max([p.get("id", 0) for p in existing_projects], default=0)
     
@@ -150,6 +144,7 @@ def create_project(username: str, project: ProjectCreate):
         "username": username,
         "name": project.name,
         "description": project.description,
+        "files": [f.dict() for f in project.files],
     }
     
     projects_collection.insert_one(new_project)
@@ -158,6 +153,34 @@ def create_project(username: str, project: ProjectCreate):
         id=new_project["id"],
         name=new_project["name"],
         description=new_project["description"],
+        files=project.files,
+    )
+
+
+@app.put("/projects/{username}/{project_id}", response_model=Project)
+def update_project(username: str, project_id: int, project: ProjectCreate):
+    result = projects_collection.update_one(
+        {
+            "username": username,
+            "id": project_id
+        },
+        {
+            "$set": {
+                "name": project.name,
+                "description": project.description,
+                "files": [f.dict() for f in project.files],
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return Project(
+        id=project_id,
+        name=project.name,
+        description=project.description,
+        files=project.files,
     )
 
 
@@ -171,100 +194,7 @@ def delete_project(username: str, project_id: int):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    # Also delete all tasks associated with this project
-    tasks_collection.delete_many({
-        "username": username,
-        "project_id": project_id
-    })
-    
     return {"message": "Project deleted successfully"}
-
-
-@app.get("/projects/{username}/{project_id}/tasks", response_model=List[Task])
-def get_tasks(username: str, project_id: int):
-    docs = list(tasks_collection.find({
-        "username": username,
-        "project_id": project_id
-    }))
-    
-    tasks = [
-        Task(
-            id=doc.get("id", 0),
-            project_id=doc.get("project_id", 0),
-            description=doc.get("description", ""),
-            files=[File(**f) for f in doc.get("files", [])],
-        )
-        for doc in docs
-    ]
-    return tasks
-
-
-@app.post("/projects/{username}/{project_id}/tasks", response_model=Task)
-def create_task(username: str, project_id: int, task: TaskCreate):
-    # Get the highest existing task ID for this project
-    existing_tasks = list(tasks_collection.find({
-        "username": username,
-        "project_id": project_id
-    }))
-    max_id = max([t.get("id", 0) for t in existing_tasks], default=0)
-    
-    new_task = {
-        "id": max_id + 1,
-        "username": username,
-        "project_id": project_id,
-        "description": task.description,
-        "files": [f.dict() for f in task.files],
-    }
-    
-    tasks_collection.insert_one(new_task)
-    
-    return Task(
-        id=new_task["id"],
-        project_id=new_task["project_id"],
-        description=new_task["description"],
-        files=task.files,
-    )
-
-
-@app.delete("/projects/{username}/{project_id}/tasks/{task_id}")
-def delete_task(username: str, project_id: int, task_id: int):
-    result = tasks_collection.delete_one({
-        "username": username,
-        "project_id": project_id,
-        "id": task_id
-    })
-    
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    return {"message": "Task deleted successfully"}
-
-
-@app.put("/projects/{username}/{project_id}/tasks/{task_id}", response_model=Task)
-def update_task(username: str, project_id: int, task_id: int, task: TaskCreate):
-    result = tasks_collection.update_one(
-        {
-            "username": username,
-            "project_id": project_id,
-            "id": task_id
-        },
-        {
-            "$set": {
-                "description": task.description,
-                "files": [f.dict() for f in task.files],
-            }
-        }
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    return Task(
-        id=task_id,
-        project_id=project_id,
-        description=task.description,
-        files=task.files,
-    )
 
 ######################
 # Agent Routes
@@ -422,7 +352,6 @@ def get_team_with_agents(username: str, team_id: str):
     if not team_doc:
         raise HTTPException(status_code=404, detail="Team not found")
     
-    # Fetch all agents for this team
     agent_ids = team_doc.get("agent_ids", [])
     agent_docs = list(agents_collection.find({
         "username": username,
@@ -458,18 +387,13 @@ def create_team(username: str, team: TeamCreate):
     """Create a new team."""
     import uuid
     
-    # Validate that all agent_ids exist
     agent_docs = list(agents_collection.find({
         "username": username,
         "id": {"$in": team.agent_ids}
     }))
-    print(team, agent_docs)
+    
     if len(agent_docs) != len(team.agent_ids):
         raise HTTPException(status_code=400, detail="One or more agent IDs not found")
-    
-    # # Validate entry point
-    # if team.entry_point not in team.agent_ids:
-    #     raise HTTPException(status_code=400, detail="Entry point must be in agent_ids")
     
     new_team = {
         "id": str(uuid.uuid4()),

@@ -1,17 +1,11 @@
-export interface Project {
-  id: number;
-  name: string;
-  description: string;
-}
-
 export interface File {
   filename: string;
   content: string;
 }
 
-export interface Task {
+export interface Project {
   id: number;
-  project_id: number;
+  name: string;
   description: string;
   files: File[];
 }
