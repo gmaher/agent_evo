@@ -1,1 +1,0 @@
-Create a general purpose AI team to act as an "AI factory". The AI factory team will be given various tasks and they must then analyze the task and assemble a team of AI agents and tools. It is important that the team can carefully analyze the provided task and context files and assemble an appropriate specialized team of agents for the task.

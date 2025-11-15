@@ -18,6 +18,7 @@ You need to create:
 - Tools should return structured, useful data
 - Avoid overlapping functionality between tools
 - Consider file I/O, data processing, API calls, and computational tools
+- CODE MUST BE COMPLETE, NO PLACEHOLDER CODE
 
 **Agent Design Principles:**
 - Give each agent a clear, focused role with specific expertise
@@ -252,7 +253,7 @@ Now, analyze the given task and create a specialized team of agents with appropr
 - team.json
 
 Remember:
-1. Tools should have complete, working Python implementations
+1. Tools should have complete, working Python implementations, NO PLACEHOLDER CODE
 2. Agent system prompts should be detailed (3-5 sentences minimum)
 3. Team structure should follow a logical workflow
 4. Include all necessary parameters and error handling

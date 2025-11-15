@@ -1,0 +1,106 @@
+{
+  "tools": [
+    {
+      "id": "file_reader",
+      "name": "read_file",
+      "description": "Read content from a file and return it as a string.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to be read",
+          "required": true
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {"type": "string", "description": "Content of the file or error message"},
+      "code": "def read_file(file_path, encoding='utf-8'):\n    try:\n        with open(file_path, 'r', encoding=encoding) as file:\n            return file.read()\n    except Exception as e:\n        return f'Error reading file {file_path}: {str(e)}'"
+    },
+    {
+      "id": "file_writer",
+      "name": "write_file",
+      "description": "Write content to a file, creating it if it doesn't exist.",
+      "parameters": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Path to the file to be written",
+          "required": true
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "Content to write to the file",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "description": "Mode to open the file in ('w' for write, 'a' for append)",
+          "required": false,
+          "default": "w"
+        },
+        {
+          "name": "encoding",
+          "type": "string",
+          "description": "File encoding",
+          "required": false,
+          "default": "utf-8"
+        }
+      ],
+      "returns": {"type": "string", "description": "Success message or error"},
+      "code": "def write_file(file_path, content, mode='w', encoding='utf-8'):\n    try:\n        with open(file_path, mode, encoding=encoding) as file:\n            file.write(content)\n        return f'Successfully wrote to {file_path}'\n    except Exception as e:\n        return f'Error writing to file {file_path}: {str(e)}'"
+    },
+    {
+      "id": "code_editor",
+      "name": "edit_code",
+      "description": "Edit or create Python code with error handling.",
+      "parameters": [
+        {
+          "name": "code",
+          "type": "string",
+          "description": "Python code to be edited or created",
+          "required": true
+        }
+      ],
+      "returns": {"type": "string", "description": "Code with potential issues highlighted"},
+      "code": "def edit_code(code):\n    import ast\n    try:\n        ast.parse(code)\n        return 'Code is syntactically correct.'\n    except SyntaxError as e:\n        return f'Syntax error in code: {str(e)}'"
+    },
+    {
+      "id": "test_framework",
+      "name": "run_tests",
+      "description": "Run tests on a set of Python code to ensure functionality.",
+      "parameters": [
+        {
+          "name": "code",
+          "type": "string",
+          "description": "Python code to be tested",
+          "required": true
+        }
+      ],
+      "returns": {"type": "string", "description": "Test results and coverage"},
+      "code": "def run_tests(code):\n    # Placeholder for actual test execution code\n    return 'Tests executed successfully.'"
+    },
+    {
+      "id": "team_configurator",
+      "name": "configure_team",
+      "description": "Configure a team structure and save it to a file.",
+      "parameters": [
+        {
+          "name": "team_structure",
+          "type": "dict",
+          "description": "Dictionary defining the team structure",
+          "required": true
+        }
+      ],
+      "returns": {"type": "string", "description": "Configuration result"},
+      "code": "def configure_team(team_structure):\n    try:\n        # Convert dictionary to JSON and write to file\n        import json\n        with open('team.json', 'w') as file:\n            json.dump(team_structure, file, indent=2)\n        return 'Team structure configured successfully.'\n    except Exception as e:\n        return f'Error configuring team: {str(e)}'"
+    }
+  ]
+}
