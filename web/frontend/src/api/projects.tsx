@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Project } from "../types";
 import CreateProjectModal from "../components/CreateProjectModal";
 
@@ -110,19 +110,10 @@ const Projects: React.FC = () => {
                 alignItems: "center",
               }}
             >
-              <Link
-                to={`/projects/${username}/${proj.id}`}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  flex: 1,
-                }}
-              >
-                <div>
-                  <h3 style={{ margin: "0 0 0.5rem 0" }}>{proj.name}</h3>
-                  <p style={{ margin: 0, color: "#666" }}>{proj.description}</p>
-                </div>
-              </Link>
+              <div>
+                <h3 style={{ margin: "0 0 0.5rem 0" }}>{proj.name}</h3>
+                <p style={{ margin: 0, color: "#666" }}>{proj.description}</p>
+              </div>
               <button
                 onClick={() => handleDeleteProject(proj.id)}
                 style={{
