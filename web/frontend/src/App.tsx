@@ -1,22 +1,24 @@
 import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import Home from "./pages/Home";
-import Projects from "./pages/Projects";
-
+import Dashboard from "./pages/Dashboard";
 import ProjectDetail from "./pages/ProjectDetail";
+import TeamDetail from "./pages/TeamDetail";
+
+import AgentDetail from "./pages/AgentDetail";
 
 const App: React.FC = () => {
   return (
     <div style={{ fontFamily: "sans-serif", padding: "1rem" }}>
-      {/* ... existing header ... */}
-
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/projects/:username" element={<Projects />} />
+        <Route path="/projects/:username" element={<Dashboard />} />
         <Route
           path="/projects/:username/:projectId"
           element={<ProjectDetail />}
         />
+        <Route path="/teams/:username/:teamId" element={<TeamDetail />} />
+        <Route path="/agents/:username/:agentId" element={<AgentDetail />} />
       </Routes>
     </div>
   );
