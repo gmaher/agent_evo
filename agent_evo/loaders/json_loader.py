@@ -17,7 +17,7 @@ class JSONLoader:
         
         with open(path, 'r') as f:
             data = json.load(f)
-        
+
         tools = {}
         for tool_data in data.get("tools", []):
             tool = Tool.from_dict(tool_data)
@@ -52,7 +52,7 @@ class JSONLoader:
         
         with open(path, 'r') as f:
             data = json.load(f)
-        
+        if "team" in data: data = data['team']
         return Team.from_dict(data)
     
     @staticmethod

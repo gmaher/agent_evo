@@ -32,8 +32,8 @@ def main():
     args = parser.parse_args()
     
     try:
-        original_dir = os.getcwd()
-        tasks_dir = Path(os.path.abspath(args.tasks_dir))
+        tasks_dir = Path(args.tasks_dir).absolute()
+
         
         if not tasks_dir.exists():
             raise FileNotFoundError(f"Tasks directory not found: {tasks_dir}")
@@ -66,6 +66,7 @@ def main():
         for i, task_dir in enumerate(task_dirs, 1):
             task_file = task_dir / "task.txt"
             output_dir = task_dir / "team"
+
             
             print(f"\n[{i}/{len(task_dirs)}] Building team for: {task_dir.name}")
             print("-"*60)
@@ -82,75 +83,68 @@ def main():
                 # Initialize app with team subdirectory as output
                 app = AgentEvoApp(
                     model=args.model,
-                    output_dir=str(output_dir),
                     ignored_files=[]
                 )
                 
-                # Load builder team
-                if args.verbose:
-                    print(f"Loading builder team from: {args.builder_dir}")
-                
+                # Load builder team and task
                 builder_config = app.load_team_from_directory(args.builder_dir)
                 
-                # Load task
                 with open(task_file, 'r') as f:
                     original_task = f.read().strip()
+                
                 
                 if args.verbose:
                     print(f"Task: {original_task[:200]}...")
                     print(f"Loaded {len(builder_config['tools'])} builder tools")
                     print(f"Loaded {len(builder_config['agents'])} builder agents")
                 
-                try:
                     # Run builder team
-                    result = app.run_team(
-                        team=builder_config['team'],
-                        task=BUILD_PROMPT.format(original_task=original_task),
-                        agents=builder_config['agents'],
-                        tools=builder_config['tools'],
-                        max_rounds=args.max_rounds,
-                        save_result=True
-                    )
+                result = app.run_team(
+                    team=builder_config['team'],
+                    task=BUILD_PROMPT.format(original_task=original_task),
+                    agents=builder_config['agents'],
+                    tools=builder_config['tools'],
+                    max_rounds=args.max_rounds,
+                    save_result=True,
+                    output_dir=str(output_dir)
+                )
+
+                # Validate generated files
+                files_created = []
+                tools_path = output_dir / "tools.json"
+                agents_path = output_dir / "agents.json"
+                team_path = output_dir / "team.json"
+                
+                if tools_path.exists():
+                    files_created.append("tools.json")
+                if agents_path.exists():
+                    files_created.append("agents.json")
+                if team_path.exists():
+                    files_created.append("team.json")
+                
+                if files_created:
+                    build_result["files_created"] = files_created
                     
-                    # Validate generated files
-                    files_created = []
-                    tools_path = output_dir / "tools.json"
-                    agents_path = output_dir / "agents.json"
-                    team_path = output_dir / "team.json"
+                    # Validate the generated files
+                    validation = app.validate_team_files(str(output_dir))
+                    build_result["validation"] = validation
                     
-                    if tools_path.exists():
-                        files_created.append("tools.json")
-                    if agents_path.exists():
-                        files_created.append("agents.json")
-                    if team_path.exists():
-                        files_created.append("team.json")
-                    
-                    if files_created:
-                        build_result["files_created"] = files_created
-                        
-                        # Validate the generated files
-                        validation = app.validate_team_files(str(output_dir))
-                        build_result["validation"] = validation
-                        
-                        if validation["valid"]:
-                            build_result["success"] = True
-                            print(f"✓ Successfully created: {', '.join(files_created)}")
-                            print(f"✓ All files are valid")
-                        else:
-                            print(f"⚠ Created files but validation failed:")
-                            for error in validation["errors"]:
-                                print(f"  ERROR: {error}")
-                            for warning in validation["warnings"]:
-                                print(f"  WARNING: {warning}")
+                    if validation["valid"]:
+                        build_result["success"] = True
+                        print(f"✓ Successfully created: {', '.join(files_created)}")
+                        print(f"✓ All files are valid")
                     else:
-                        build_result["error"] = "No team files were created"
-                        print(f"✗ No team files were created")
+                        print(f"⚠ Created files but validation failed:")
+                        for error in validation["errors"]:
+                            print(f"  ERROR: {error}")
+                        for warning in validation["warnings"]:
+                            print(f"  WARNING: {warning}")
+                else:
+                    build_result["error"] = "No team files were created"
+                    print(f"✗ No team files were created")
+                
+                build_result["rounds"] = result.get("rounds")
                     
-                    build_result["rounds"] = result.get("rounds")
-                    
-                finally:
-                    # Always change back to original directory
-                    os.chdir(original_dir)
                 
             except Exception as e:
                 build_result["error"] = str(e)
@@ -160,8 +154,6 @@ def main():
                     import traceback
                     traceback.print_exc()
                 
-                # Ensure we're back in original directory
-                os.chdir(original_dir)
             
             batch_results["builds"].append(build_result)
         

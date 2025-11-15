@@ -27,11 +27,11 @@ def main():
     args = parser.parse_args()
     
     try:
-        original_dir = os.getcwd()
-        tasks_dir = Path(os.path.abspath(args.tasks_dir))
+        tasks_dir = Path(args.tasks_dir).absolute()
         
         if not tasks_dir.exists():
             raise FileNotFoundError(f"Tasks directory not found: {tasks_dir}")
+    
         
         # Find all subdirectories with task.txt and team/ folder
         task_dirs = []
@@ -74,30 +74,23 @@ def main():
             }
             
             try:
-                # Initialize app with subdirectory as output
-                app = AgentEvoApp(
-                    model=args.model,
+                # Initialize app
+                app = AgentEvoApp(model=args.model)
+                
+                # Run team with task_dir as output directory
+                result = app.run_from_directory(
+                    team_dir=str(team_dir),
+                    task_path=str(task_file),
+                    max_rounds=args.max_rounds,
+                    verbose=args.verbose,
                     output_dir=str(task_dir)
                 )
                 
-                try:
-                    # Run team
-                    result = app.run_from_directory(
-                        team_dir=str(team_dir),
-                        task_path=str(task_file),
-                        max_rounds=args.max_rounds,
-                        verbose=args.verbose
-                    )
-                    
-                    task_result["success"] = True
-                    task_result["rounds"] = result.get("rounds")
-                    task_result["agents_involved"] = len(result.get("agent_outputs", {}))
-                    
-                    print(f"✓ Completed in {result['rounds']} rounds")
-                    
-                finally:
-                    # Always change back to original directory
-                    os.chdir(original_dir)
+                task_result["success"] = True
+                task_result["rounds"] = result.get("rounds")
+                task_result["agents_involved"] = len(result.get("agent_outputs", {}))
+                
+                print(f"✓ Completed in {result['rounds']} rounds")
                 
             except Exception as e:
                 task_result["error"] = str(e)
@@ -108,6 +101,7 @@ def main():
                     traceback.print_exc()
             
             batch_results["tasks"].append(task_result)
+        
         
         # Save batch summary
         batch_results["end_time"] = datetime.now().isoformat()

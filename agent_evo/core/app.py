@@ -45,12 +45,8 @@ class AgentEvoApp:
         else:
             self.llm_client = llm_client
         
-        # Initialize team runner
-        self.team_runner = TeamRunner(
-            llm_client=self.llm_client,
-            output_dir=".",
-            ignored_files=self.ignored_files
-        )
+        # Initialize team runner (will be created per run with specific output_dir)
+        self.team_runner = None
     
     def load_team_from_directory(self, directory: str) -> Dict[str, Any]:
         """
@@ -63,14 +59,13 @@ class AgentEvoApp:
             Dictionary with 'tools', 'agents', and 'team' keys
         """
         dir_path = Path(directory)
-        
         if not dir_path.exists():
             raise FileNotFoundError(f"Directory not found: {directory}")
-        
+        print("LOAD TEAM", dir_path)
         tools_path = dir_path / "tools.json"
         agents_path = dir_path / "agents.json"
         team_path = dir_path / "team.json"
-        
+        print(tools_path, agents_path, team_path)
         # Check required files exist
         missing = []
         if not tools_path.exists():
@@ -79,17 +74,21 @@ class AgentEvoApp:
             missing.append("agents.json")
         if not team_path.exists():
             missing.append("team.json")
-        
+        print("MISSING ", [])
         if missing:
+            print("MISSING CHECK TRUE")
             raise FileNotFoundError(
                 f"Missing required files in {directory}: {', '.join(missing)}"
             )
         
         # Load configurations
         tools = JSONLoader.load_tools(str(tools_path))
+        print(tools)
         agents = JSONLoader.load_agents(str(agents_path))
+        print(agents)
         team = JSONLoader.load_team(str(team_path))
-        
+        print(team)
+
         return {
             "tools": tools,
             "agents": agents,
@@ -100,11 +99,6 @@ class AgentEvoApp:
         """Load task from file."""
         return JSONLoader.load_task(task_path)
     
-    def setup_output_directory(self):
-        """Create output directory and change to it."""
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        os.chdir(self.output_dir)
-    
     def run_team(
         self,
         team: Team,
@@ -112,7 +106,8 @@ class AgentEvoApp:
         agents: Dict[str, Agent],
         tools: Dict[str, Tool],
         max_rounds: int = 10,
-        save_result: bool = True
+        save_result: bool = True,
+        output_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Run a team on a task.
@@ -124,19 +119,28 @@ class AgentEvoApp:
             tools: Dictionary of tools
             max_rounds: Maximum number of delegation rounds
             save_result: Whether to save result to output.json
+            output_dir: Override output directory for this run
         
         Returns:
             Execution result dictionary
         """
-        # Setup output directory
-        self.setup_output_directory()
+        # Use provided output_dir or default
+        run_output_dir = Path(output_dir) if output_dir else self.output_dir
+        run_output_dir.mkdir(parents=True, exist_ok=True)
         
-        print(f"Working directory: {self.output_dir.absolute()}")
+        # Create team runner with specific output directory
+        team_runner = TeamRunner(
+            llm_client=self.llm_client,
+            output_dir=str(run_output_dir),
+            ignored_files=self.ignored_files
+        )
+        
+        print(f"Output directory: {run_output_dir.absolute()}")
         print(f"\nRunning team: {team.name}")
         print("=" * 60)
         
         # Run the team
-        result = self.team_runner.run_team(
+        result = team_runner.run_team(
             team=team,
             task=task,
             agents=agents,
@@ -148,7 +152,7 @@ class AgentEvoApp:
         
         # Save result if requested
         if save_result:
-            result_path = self.output_dir / "output.json"
+            result_path = run_output_dir / "output.json"
             with open(result_path, 'w') as f:
                 json.dump(result, f, indent=2, default=str)
             print(f"\nResults saved to {result_path}")
@@ -160,7 +164,8 @@ class AgentEvoApp:
         team_dir: str,
         task_path: str,
         max_rounds: int = 10,
-        verbose: bool = False
+        verbose: bool = False,
+        output_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Load team from directory and run on task.
@@ -170,6 +175,7 @@ class AgentEvoApp:
             task_path: Path to task file
             max_rounds: Maximum number of rounds
             verbose: Enable verbose output
+            output_dir: Override output directory for this run
         
         Returns:
             Execution result dictionary
@@ -192,7 +198,8 @@ class AgentEvoApp:
             task=task,
             agents=config['agents'],
             tools=config['tools'],
-            max_rounds=max_rounds
+            max_rounds=max_rounds,
+            output_dir=output_dir
         )
         
         # Print outputs
@@ -220,12 +227,10 @@ class AgentEvoApp:
             "errors": [],
             "warnings": []
         }
-        
-        dir_path = Path(directory)
-        
+        print("VALIDATION", directory)
         try:
             config = self.load_team_from_directory(directory)
-            
+            print(config)
             # Validate team structure
             try:
                 config['team'].validate()

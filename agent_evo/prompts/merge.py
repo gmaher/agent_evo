@@ -122,4 +122,11 @@ Format each file as valid JSON following the existing schemas.
 - Each edge should have a clear purpose
 - Avoid cycles unless absolutely necessary
 
+**Overall:**
+- UNLEASH YOUR CREATIVITY, do not be afraid TO GO HAM. 
+- You have access to a fully functional python environment and shell environment and may propose tools that fully utilize these.
+- Propose both general purpose tools and specific tools tailored to each agent.
+- Make the system prompts for the agents extensive and detailed.
+- Feel free to create new tools and agents even if they aren't in the provided inputs
+
 Begin by analyzing the strengths and weaknesses of each team, then create the improved merged team."""

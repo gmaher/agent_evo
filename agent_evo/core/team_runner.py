@@ -1,4 +1,5 @@
 from typing import Dict, List, Any, Optional
+from pathlib import Path
 from agent_evo.models.team import Team
 from agent_evo.models.agent import Agent
 from agent_evo.models.tool import Tool
@@ -10,9 +11,13 @@ class TeamRunner:
     
     def __init__(self, llm_client: LLMClient, output_dir: str = ".", ignored_files=None):
         self.llm_client = llm_client
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir).absolute()
         self.ignored_files = ignored_files
-        self.agent_runner = AgentRunner(llm_client, output_dir, ignored_files=ignored_files)
+        self.agent_runner = AgentRunner(
+            llm_client, 
+            str(self.output_dir), 
+            ignored_files=ignored_files
+        )
     
     def run_team(self, 
                  team: Team,
@@ -105,10 +110,29 @@ class TeamRunner:
                 current_task = delegation["task"]
             else:
                 # Agent finished without delegating
-                print(f"\n{'='*60}")
-                print(f"TEAM COMPLETED: {agent.name} finished the task")
-                print(f"{'='*60}")
-                break
+                # Check if there are unvisited team members available
+                unvisited_neighbors = [aid for aid in available_agents if aid not in visited_agents]
+                
+                if unvisited_neighbors:
+                    # Auto-delegate to first unvisited team member
+                    next_agent_id = unvisited_neighbors[0]
+                    next_agent = agents[next_agent_id]
+                    
+                    print(f"\n{'='*60}")
+                    print(f"AUTO-DELEGATION: {agent.name} -> {next_agent.name}")
+                    print(f"Reason: Unvisited team members remain")
+                    print(f"{'='*60}")
+                    
+                    # Continue with next agent, passing along the current context
+                    current_agent_id = next_agent_id
+                    current_task = f"Continue the work from {agent.name}. Previous output: {result['final_response'][:200]}..."
+                else:
+                    # All neighbors visited or no neighbors left
+                    print(f"\n{'='*60}")
+                    print(f"TEAM COMPLETED: {agent.name} finished the task")
+                    print(f"All available team members have been utilized")
+                    print(f"{'='*60}")
+                    break
         
         # Extract final outputs from chat history
         agent_outputs = {}

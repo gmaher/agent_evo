@@ -67,7 +67,7 @@ class AgentRunner:
         structure = self._read_directory_structure()
         
         return f"""=== Current Directory Structure ===
-Working Directory: {self.output_dir}
+Working Directory: .
 
 {structure}
 
@@ -170,6 +170,14 @@ Working Directory: {self.output_dir}
                         continue
                     
                     tool = matching_tools[0]
+                    
+                    # Make file paths relative to output directory for file operations
+                    if tool_name in ["read_file", "write_file"] and "file_path" in arguments:
+                        file_path = arguments["file_path"]
+                        
+                        # If path is not absolute, make it relative to output_dir
+                        if not os.path.isabs(file_path):
+                            arguments["file_path"] = os.path.join(self.output_dir, file_path)
                     
                     # Validate arguments
                     error = self.tool_executor.validate_arguments(tool, arguments)

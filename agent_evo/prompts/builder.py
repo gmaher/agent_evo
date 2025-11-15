@@ -1,3 +1,5 @@
+CREATE_FACTORY_TASK = "Create a general purpose AI team to act as an advanced 'AI factory'. The AI factory team will be given various difficult tasks and they must then analyze the task and assemble a team of AI agents and tools. It is important that the team can carefully analyze the provided task and context files and assemble an appropriate specialized team of agents for the task."
+
 BUILD_PROMPT = """You are an AI team builder. Your job is to design and create a team of AI agents that can solve the following task:
 
 === ORIGINAL TASK ===
@@ -18,7 +20,7 @@ You need to create:
 - Tools should return structured, useful data
 - Avoid overlapping functionality between tools
 - Consider file I/O, data processing, API calls, and computational tools
-- CODE MUST BE COMPLETE, NO PLACEHOLDER CODE
+- TOOL CODE MUST BE COMPLETE, NO PLACEHOLDER CODE
 
 **Agent Design Principles:**
 - Give each agent a clear, focused role with specific expertise
@@ -258,6 +260,64 @@ Remember:
 3. Team structure should follow a logical workflow
 4. Include all necessary parameters and error handling
 5. Make the team as sophisticated as needed while maintaining clarity
+6. Make sure to follow exactly the keys and types from the JSON examples above
+
+=== JSON SCHEMAS ===
+
+**tools.json Schema:**
+{{
+  "tools": [
+    {{
+      "id": "string (unique identifier)",
+      "name": "string (function name)",
+      "description": "string (what the tool does)",
+      "parameters": [
+        {{
+          "name": "string (parameter name)",
+          "type": "string (e.g., 'string', 'int', 'list', 'dict')",
+          "description": "string (parameter purpose)",
+          "required": boolean,
+          "default": any (optional, only if not required)
+        }}
+      ],
+      "returns": {{
+        "type": "string (return type)",
+        "description": "string (what it returns)"
+      }},
+      "code": "string (complete Python function implementation)"
+    }}
+  ]
+}}
+
+**agents.json Schema:**
+{{
+  "agents": [
+    {{
+      "id": "string (unique identifier)",
+      "name": "string (agent display name)",
+      "system_prompt": "string (detailed agent personality and instructions)",
+      "tool_ids": ["string (tool id)", ...],
+      "temperature": number (0.0 to 1.0, default 0.7),
+      "max_retries": number (optional, default 3)
+    }}
+  ]
+}}
+
+**team.json Schema:**
+{{
+  "id": "string (unique identifier)",
+  "name": "string (team display name)",
+  "description": "string (team purpose)",
+  "agent_ids": ["string (agent id)", ...],
+  "edges": [
+    {{
+      "from": "string (source agent id)",
+      "to": "string (target agent id)",
+      "description": "string (delegation purpose)"
+    }}
+  ],
+  "entry_point": "string (starting agent id)"
+}}
 
 Begin by understanding the task requirements, then design your team accordingly.
 You ABSOLUTLEY must use the file_writer tool to create a team.json, agents.json and tools.json file."""
