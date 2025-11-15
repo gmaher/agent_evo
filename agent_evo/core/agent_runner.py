@@ -3,64 +3,26 @@ from agent_evo.models.agent import Agent
 from agent_evo.models.default_tools import ToolDefinition, get_default_tools, get_tool_by_name
 from agent_evo.models.tool import Tool
 from agent_evo.core.tool_executor import ToolExecutor
+from agent_evo.core.filesystem import FileSystem
 from agent_evo.prompts.agent import AGENT_SYSTEM_PROMPT, DELEGATION_INSTRUCTIONS
 from agent_evo.utils.parser import ToolCallParser
 from agent_evo.llm.client import LLMClient
-import os
 
 
 class AgentRunner:
     """Runs an agent with tool execution capabilities."""
     
-    def __init__(self, llm_client: LLMClient, output_dir: str = ".", ignored_files:Optional[set]=None):
+    def __init__(self, llm_client: LLMClient, filesystem: FileSystem, ignored_files: Optional[set] = None):
         self.llm_client = llm_client
+        self.filesystem = filesystem
         self.tool_executor = ToolExecutor()
         self.parser = ToolCallParser()
-        self.all_tools = get_default_tools()  # Load all predefined tools
-        self.output_dir = output_dir
-        self.ignored_files = ignored_files
+        self.all_tools = get_default_tools(filesystem)  # Pass filesystem to get tools
+        self.ignored_files = ignored_files or set()
 
-    def _read_directory_structure(self, path: Optional[str] = None, prefix: str = "") -> str:
-        """Recursively read directory structure, ignoring specific files."""
-        if path is None:
-            path = self.output_dir
-        
-        if self.ignored_files is None:
-            self.ignored_files = {"agents.json", "tools.json", "team.json"}
-        
-        structure_lines = []
-        
-        try:
-            # Get all items in directory
-            items = sorted(os.listdir(path))
-            
-            # Filter out ignored files
-            items = [item for item in items if item not in self.ignored_files]
-            
-            for i, item in enumerate(items):
-                item_path = os.path.join(path, item)
-                is_last = i == len(items) - 1
-                
-                # Determine the prefix characters
-                current_prefix = "└── " if is_last else "├── "
-                next_prefix = "    " if is_last else "│   "
-                
-                if os.path.isdir(item_path):
-                    structure_lines.append(f"{prefix}{current_prefix}{item}/")
-                    # Recursively add subdirectory contents
-                    sub_structure = self._read_directory_structure(
-                        item_path, 
-                        prefix + next_prefix,
-                    )
-                    if sub_structure:
-                        structure_lines.append(sub_structure)
-                else:
-                    structure_lines.append(f"{prefix}{current_prefix}{item}")
-            
-            return "\n".join(structure_lines)
-        
-        except Exception as e:
-            return f"Error reading directory: {str(e)}"
+    def _read_directory_structure(self) -> str:
+        """Get directory structure from filesystem."""
+        return self.filesystem.get_directory_structure(self.ignored_files)
     
     def _build_directory_info(self) -> str:
         """Build the directory information section."""
@@ -83,14 +45,16 @@ Working Directory: .
         Run an agent on a task with available tools.
         Returns the final response, execution history, and delegation info.
         """
-        # Filter tools available to this agent based on tool_ids
+        # Filter tools available to this agent based on tool_names
         available_tools = {}
         
-        # Add tools specified in agent.tool_ids
+        # Add tools specified in agent.tool_names
         for tool_name in agent.tool_names:
             if tool_name in self.all_tools:
                 available_tools[tool_name] = self.all_tools[tool_name]
-        print(self.all_tools, available_tools)
+        
+        print(f"All tools: {list(self.all_tools.keys())}, Available: {list(available_tools.keys())}")
+        
         # Build tools description
         tools_description = self._build_tools_description(available_tools)
         
@@ -148,7 +112,7 @@ Working Directory: .
                     arguments = tool_call["arguments"]
                     
                     # Find the tool by name
-                    tool = get_tool_by_name(tool_name)
+                    tool = get_tool_by_name(self.all_tools, tool_name)
                     
                     if not tool:
                         tool_results.append({
@@ -158,21 +122,12 @@ Working Directory: .
                         continue
                     
                     # Check if agent has access to this tool
-                    tool_name = tool.name
                     if tool_name not in available_tools:
                         tool_results.append({
                             "tool": tool_name,
                             "error": f"Tool '{tool_name}' not available to this agent"
                         })
                         continue
-                    
-                    # Make file paths relative to output directory for file operations
-                    if tool_name in ["read_file", "write_file"] and "file_path" in arguments:
-                        file_path = arguments["file_path"]
-                        
-                        # If path is not absolute, make it relative to output_dir
-                        if not os.path.isabs(file_path):
-                            arguments["file_path"] = os.path.join(self.output_dir, file_path)
                     
                     # Validate arguments
                     error = self.tool_executor.validate_arguments(tool, arguments)
@@ -269,7 +224,6 @@ Working Directory: .
         """Parse delegation from agent response."""
         import re
         
-        # Pattern: [DELEGATE: agent_id] followed by task description
         pattern = r'\[DELEGATE:\s*(\w+)\]\s*(.+?)(?=\[DELEGATE:|$)'
         match = re.search(pattern, response, re.DOTALL)
         

@@ -2,21 +2,21 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 from agent_evo.models.team import Team
 from agent_evo.models.agent import Agent
-from agent_evo.models.tool import Tool
 from agent_evo.core.agent_runner import AgentRunner
+from agent_evo.core.filesystem import FileSystem
 from agent_evo.llm.client import LLMClient
 
 class TeamRunner:
     """Orchestrates a team of agents working together."""
     
-    def __init__(self, llm_client: LLMClient, output_dir: str = ".", ignored_files=None):
+    def __init__(self, llm_client: LLMClient, filesystem: FileSystem, ignored_files=None):
         self.llm_client = llm_client
-        self.output_dir = Path(output_dir).absolute()
-        self.ignored_files = ignored_files
+        self.filesystem = filesystem
+        self.ignored_files = ignored_files or set()
         self.agent_runner = AgentRunner(
             llm_client, 
-            str(self.output_dir), 
-            ignored_files=ignored_files
+            filesystem,
+            ignored_files=self.ignored_files
         )
     
     def run_team(self, 

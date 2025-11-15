@@ -23,6 +23,11 @@ def main():
     parser.add_argument("--model", default="gpt-4o", help="LLM model to use")
     parser.add_argument("--max-rounds", type=int, default=10, help="Maximum rounds per task")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
+    parser.add_argument(
+        "--load-context",
+        action="store_true",
+        help="Load all files from task directory as initial context"
+    )
     
     args = parser.parse_args()
     
@@ -61,6 +66,7 @@ def main():
         for i, task_dir in enumerate(task_dirs, 1):
             task_file = task_dir / "task.txt"
             team_dir = task_dir / "team"
+            output_dir = task_dir / "output"
             
             print(f"\n[{i}/{len(task_dirs)}] Processing: {task_dir.name}")
             print("-"*60)
@@ -69,28 +75,47 @@ def main():
                 "task_dir": str(task_dir),
                 "task_name": task_dir.name,
                 "team_dir": str(team_dir),
+                "output_dir": str(output_dir),
                 "success": False,
                 "error": None
             }
             
             try:
-                # Initialize app
+                # Initialize app (creates fresh in-memory filesystem)
                 app = AgentEvoApp(model=args.model)
                 
-                # Run team with task_dir as output directory
+                # Determine context directory and exclude patterns
+                context_dir = None
+                exclude_patterns = None
+                
+                if args.load_context:
+                    context_dir = str(task_dir)
+                    # Exclude task.txt, team/ folder, and output/ folder
+                    exclude_patterns = ["task.txt", "team/", "output/"]
+                    
+                    if args.verbose:
+                        print(f"Loading context from: {context_dir}")
+                
+                # Run team
                 result = app.run_from_directory(
                     team_dir=str(team_dir),
                     task_path=str(task_file),
                     max_rounds=args.max_rounds,
                     verbose=args.verbose,
-                    output_dir=str(task_dir)
+                    context_dir=context_dir,
+                    exclude_patterns=exclude_patterns
                 )
+                
+                # Save files from in-memory filesystem to disk
+                files_saved = app.save_filesystem_to_disk(str(output_dir))
                 
                 task_result["success"] = True
                 task_result["rounds"] = result.get("rounds")
                 task_result["agents_involved"] = len(result.get("agent_outputs", {}))
+                task_result["files_saved"] = files_saved
                 
                 print(f"✓ Completed in {result['rounds']} rounds")
+                print(f"✓ Saved {files_saved} files to {output_dir}")
                 
             except Exception as e:
                 task_result["error"] = str(e)
