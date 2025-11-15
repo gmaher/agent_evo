@@ -1,6 +1,6 @@
 from typing import Dict, List, Any, Optional, Tuple
 from agent_evo.models.agent import Agent
-from agent_evo.models.default_tools import get_default_tools
+from agent_evo.models.default_tools import ToolDefinition, get_default_tools, get_tool_by_name
 from agent_evo.models.tool import Tool
 from agent_evo.core.tool_executor import ToolExecutor
 from agent_evo.prompts.agent import AGENT_SYSTEM_PROMPT, DELEGATION_INSTRUCTIONS
@@ -16,11 +16,11 @@ class AgentRunner:
         self.llm_client = llm_client
         self.tool_executor = ToolExecutor()
         self.parser = ToolCallParser()
-        self.default_tools = get_default_tools()  # Load default tools
+        self.all_tools = get_default_tools()  # Load all predefined tools
         self.output_dir = output_dir
         self.ignored_files = ignored_files
 
-    def _read_directory_structure(self, path: str = None, prefix: str = "") -> str:
+    def _read_directory_structure(self, path: Optional[str] = None, prefix: str = "") -> str:
         """Recursively read directory structure, ignoring specific files."""
         if path is None:
             path = self.output_dir
@@ -76,7 +76,6 @@ Working Directory: .
     def run_agent(self, 
                   agent: Agent, 
                   task: str, 
-                  tools: Dict[str, Tool],
                   available_agents: Optional[List[str]] = None,
                   chat_history: Optional[List[Dict[str, Any]]] = None,
                   max_iterations: int = 10) -> Dict[str, Any]:
@@ -84,22 +83,14 @@ Working Directory: .
         Run an agent on a task with available tools.
         Returns the final response, execution history, and delegation info.
         """
-        # Start with default tools
-        all_tools = dict(self.default_tools)
+        # Filter tools available to this agent based on tool_ids
+        available_tools = {}
         
-        # Add custom tools (these can override defaults if needed)
-        all_tools.update(tools)
-        
-        # Filter tools available to this agent
-        # Note: default tools are always available regardless of agent.tool_ids
-        available_tools = dict(self.default_tools)  # Always include defaults
-        
-        # Add agent-specific tools
-        for tool_id, tool in all_tools.items():
-            if tool_id in agent.tool_ids and tool_id not in self.default_tools:
-                available_tools[tool_id] = tool
-        
-        
+        # Add tools specified in agent.tool_ids
+        for tool_name in agent.tool_names:
+            if tool_name in self.all_tools:
+                available_tools[tool_name] = self.all_tools[tool_name]
+        print(self.all_tools, available_tools)
         # Build tools description
         tools_description = self._build_tools_description(available_tools)
         
@@ -156,20 +147,24 @@ Working Directory: .
                     tool_name = tool_call["tool"]
                     arguments = tool_call["arguments"]
                     
-                    # Find the tool
-                    matching_tools = [
-                        tool for tool in available_tools.values() 
-                        if tool.name == tool_name
-                    ]
+                    # Find the tool by name
+                    tool = get_tool_by_name(tool_name)
                     
-                    if not matching_tools:
+                    if not tool:
                         tool_results.append({
                             "tool": tool_name,
                             "error": f"Tool '{tool_name}' not found"
                         })
                         continue
                     
-                    tool = matching_tools[0]
+                    # Check if agent has access to this tool
+                    tool_name = tool.name
+                    if tool_name not in available_tools:
+                        tool_results.append({
+                            "tool": tool_name,
+                            "error": f"Tool '{tool_name}' not available to this agent"
+                        })
+                        continue
                     
                     # Make file paths relative to output directory for file operations
                     if tool_name in ["read_file", "write_file"] and "file_path" in arguments:
@@ -290,13 +285,13 @@ Working Directory: .
         """Check if agent marked their work as finished."""
         return "<FINISHED>" in response
     
-    def _build_tools_description(self, tools: Dict[str, Tool]) -> str:
+    def _build_tools_description(self, tools: Dict[str, ToolDefinition]) -> str:
         """Build a description of available tools."""
         descriptions = []
         for tool in tools.values():
             params = ", ".join([
-                f"{p.name}: {p.type}" + 
-                (" (optional)" if not p.required else "")
+                f"{p['name']}: {p['type']}" + 
+                (" (optional)" if not p["required"] else "")
                 for p in tool.parameters
             ])
             descriptions.append(

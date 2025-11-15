@@ -8,6 +8,7 @@ from pathlib import Path
 
 from agent_evo.core.app import AgentEvoApp
 from agent_evo.prompts.builder import BUILD_PROMPT
+from agent_evo.prompts.builder import BUILD_PROMPT, format_available_tools
 
 
 def main():
@@ -46,27 +47,25 @@ def main():
         original_task = app.load_task(args.task)
         
         if args.verbose:
-            print(f"Loaded {len(builder_config['tools'])} builder tools")
             print(f"Loaded {len(builder_config['agents'])} builder agents")
             print(f"Original task: {original_task[:200]}...")
         
         # Run builder team
         result = app.run_team(
             team=builder_config['team'],
-            task=BUILD_PROMPT.format(original_task=original_task),
-            agents=builder_config['agents'],
-            tools=builder_config['tools']
+            task=BUILD_PROMPT.format(
+                original_task=original_task,
+                available_tools=format_available_tools()
+            ),
+            agents=builder_config['agents']
         )
         
         # Validate generated files
         output_dir = Path(args.output_dir)
-        tools_path = output_dir / "tools.json"
         agents_path = output_dir / "agents.json"
         team_path = output_dir / "team.json"
         
         files_created = []
-        if tools_path.exists():
-            files_created.append("tools.json")
         if agents_path.exists():
             files_created.append("agents.json")
         if team_path.exists():

@@ -6,7 +6,7 @@ This is a minimal command-line todo list application.
 
 - Add todos
 - List todos
-- Mark todos as done ✅ (BUG fixed: the done status now persists correctly)
+- Mark todos as done ✅
 - Delete todos by ID
 
 ## Requirements
@@ -28,5 +28,9 @@ python app.py list
 
 ## Change Log
 
-- **Bug Fix**: Fixed the issue where marking a todo as done did not persist after restarting the program.
+- **Bug Fix**: Ensured the issue where marking a todo as done did not persist after restarting the program is resolved.
 - **New Feature**: Added `delete <id>` command to remove a todo by its 1-based ID.
+
+## Test Results
+
+For detailed test results, refer to `test_results.md`.

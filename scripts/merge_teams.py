@@ -17,12 +17,12 @@ def main():
     parser.add_argument(
         "--team1-dir", 
         required=True, 
-        help="Directory containing first team's files (tools.json, agents.json, team.json)"
+        help="Directory containing first team's files (agents.json, team.json)"
     )
     parser.add_argument(
         "--team2-dir",
         required=True,
-        help="Directory containing second team's files (tools.json, agents.json, team.json)"
+        help="Directory containing second team's files (agents.json, team.json)"
     )
     parser.add_argument(
         "--output-dir",

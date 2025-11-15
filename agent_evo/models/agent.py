@@ -11,7 +11,7 @@ class Agent:
     id: str
     name: str
     system_prompt: str
-    tool_ids: List[str] = field(default_factory=list)  # Additional tools beyond defaults
+    tool_names: List[str] = field(default_factory=list)  # Additional tools beyond defaults
     model: str = "gpt-4o"
     temperature: float = 1.0
     max_retries: int = 3
@@ -22,7 +22,7 @@ class Agent:
             "id": self.id,
             "name": self.name,
             "system_prompt": self.system_prompt,
-            "tool_ids": self.tool_ids,
+            "tool_names": self.tool_names,
             "model": self.model,
             "temperature": self.temperature,
             "max_retries": self.max_retries
@@ -35,7 +35,7 @@ class Agent:
             id=data["id"],
             name=data["name"],
             system_prompt=data["system_prompt"],
-            tool_ids=data.get("tool_ids", []),
+            tool_names=data.get("tool_names", []),
             model=data.get("model", "gpt-5-mini"),
             temperature=data.get("temperature", 0.7),
             max_retries=data.get("max_retries", 3)

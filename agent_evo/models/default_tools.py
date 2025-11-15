@@ -1,36 +1,24 @@
 """Default tools available to all agents."""
 
-from agent_evo.models.tool import Tool, ToolParameter
+from typing import Any, Dict, Callable, Optional
+from dataclasses import dataclass
+import os
 
-def create_file_reader_tool() -> Tool:
-    """Create a file reader tool."""
-    return Tool(
-        id="file_reader",
-        name="read_file",
-        description="Read the contents of a file",
-        parameters=[
-            ToolParameter(
-                name="file_path",
-                type="str",
-                description="Path to the file to read",
-                required=True
-            ),
-            ToolParameter(
-                name="encoding",
-                type="str",
-                description="File encoding (default: utf-8)",
-                required=False,
-                default="utf-8"
-            )
-        ],
-        returns={
-            "type": "str",
-            "description": "The contents of the file"
-        },
-        code="""
+READ_FILE = "read_file"
+WRITE_FILE = "write_file"
+
+@dataclass
+class ToolDefinition:
+    """Metadata for a predefined tool."""
+    name: str
+    description: str
+    parameters: list  # List of dicts with name, type, description, required
+    returns: Dict[str, str]
+    function: Callable
+
+
 def read_file(file_path: str, encoding: str = "utf-8") -> str:
-    import os
-    
+    """Read the contents of a file."""
     # Expand user home directory if present
     file_path = os.path.expanduser(file_path)
     
@@ -46,54 +34,13 @@ def read_file(file_path: str, encoding: str = "utf-8") -> str:
     try:
         with open(file_path, 'r', encoding=encoding) as f:
             content = f.read()
-        return f"Successfully read {len(content)} characters from {file_path}\\n\\nContent:\\n{content}"
+        return f"Successfully read {len(content)} characters from {file_path}\n\nContent:\n{content}"
     except Exception as e:
         raise RuntimeError(f"Failed to read file: {str(e)}")
-"""
-    )
 
-def create_file_writer_tool() -> Tool:
-    """Create a file writer tool."""
-    return Tool(
-        id="file_writer",
-        name="write_file",
-        description="Write content to a file (creates file if it doesn't exist)",
-        parameters=[
-            ToolParameter(
-                name="file_path",
-                type="str",
-                description="Path to the file to write",
-                required=True
-            ),
-            ToolParameter(
-                name="content",
-                type="str",
-                description="Content to write to the file",
-                required=True
-            ),
-            ToolParameter(
-                name="mode",
-                type="str",
-                description="Write mode: 'w' to overwrite, 'a' to append (default: 'w')",
-                required=False,
-                default="w"
-            ),
-            ToolParameter(
-                name="encoding",
-                type="str",
-                description="File encoding (default: utf-8)",
-                required=False,
-                default="utf-8"
-            )
-        ],
-        returns={
-            "type": "str",
-            "description": "Success message with bytes written"
-        },
-        code="""
+
 def write_file(file_path: str, content: str, mode: str = "w", encoding: str = "utf-8") -> str:
-    import os
-    
+    """Write content to a file (creates file if it doesn't exist)."""
     # Expand user home directory if present
     file_path = os.path.expanduser(file_path)
     
@@ -115,12 +62,82 @@ def write_file(file_path: str, content: str, mode: str = "w", encoding: str = "u
         return f"Successfully {action} {file_path}. Wrote {bytes_written} characters."
     except Exception as e:
         raise RuntimeError(f"Failed to write file: {str(e)}")
-"""
-    )
 
-def get_default_tools() -> dict:
+
+# Define all available tools
+PREDEFINED_TOOLS = {
+    "read_file": ToolDefinition(
+        name="read_file",
+        description="Read the contents of a file",
+        parameters=[
+            {
+                "name": "file_path",
+                "type": "str",
+                "description": "Path to the file to read",
+                "required": True
+            },
+            {
+                "name": "encoding",
+                "type": "str",
+                "description": "File encoding (default: utf-8)",
+                "required": False,
+                "default": "utf-8"
+            }
+        ],
+        returns={
+            "type": "str",
+            "description": "The contents of the file"
+        },
+        function=read_file
+    ),
+    "write_file": ToolDefinition(
+        name="write_file",
+        description="Write content to a file (creates file if it doesn't exist)",
+        parameters=[
+            {
+                "name": "file_path",
+                "type": "str",
+                "description": "Path to the file to write",
+                "required": True
+            },
+            {
+                "name": "content",
+                "type": "str",
+                "description": "Content to write to the file",
+                "required": True
+            },
+            {
+                "name": "mode",
+                "type": "str",
+                "description": "Write mode: 'w' to overwrite, 'a' to append (default: 'w')",
+                "required": False,
+                "default": "w"
+            },
+            {
+                "name": "encoding",
+                "type": "str",
+                "description": "File encoding (default: utf-8)",
+                "required": False,
+                "default": "utf-8"
+            }
+        ],
+        returns={
+            "type": "str",
+            "description": "Success message with bytes written"
+        },
+        function=write_file
+    )
+}
+
+
+def get_default_tools() -> Dict[str, ToolDefinition]:
     """Get dictionary of default tools available to all agents."""
-    return {
-        "file_reader": create_file_reader_tool(),
-        "file_writer": create_file_writer_tool()
-    }
+    return PREDEFINED_TOOLS
+
+
+def get_tool_by_name(tool_name: str) -> Optional[ToolDefinition]:
+    """Get a tool by its function name."""
+    for tool in PREDEFINED_TOOLS.values():
+        if tool.name == tool_name:
+            return tool
+    return None

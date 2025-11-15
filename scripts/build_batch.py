@@ -9,6 +9,7 @@ from datetime import datetime
 
 from agent_evo.core.app import AgentEvoApp
 from agent_evo.prompts.builder import BUILD_PROMPT
+from agent_evo.prompts.builder import BUILD_PROMPT, format_available_tools
 
 
 def main():
@@ -92,18 +93,18 @@ def main():
                 with open(task_file, 'r') as f:
                     original_task = f.read().strip()
                 
-                
                 if args.verbose:
                     print(f"Task: {original_task[:200]}...")
-                    print(f"Loaded {len(builder_config['tools'])} builder tools")
                     print(f"Loaded {len(builder_config['agents'])} builder agents")
                 
-                    # Run builder team
+                # Run builder team
                 result = app.run_team(
                     team=builder_config['team'],
-                    task=BUILD_PROMPT.format(original_task=original_task),
+                    task=BUILD_PROMPT.format(
+                        original_task=original_task,
+                        available_tools=format_available_tools()
+                    ),
                     agents=builder_config['agents'],
-                    tools=builder_config['tools'],
                     max_rounds=args.max_rounds,
                     save_result=True,
                     output_dir=str(output_dir)
@@ -111,12 +112,9 @@ def main():
 
                 # Validate generated files
                 files_created = []
-                tools_path = output_dir / "tools.json"
                 agents_path = output_dir / "agents.json"
                 team_path = output_dir / "team.json"
                 
-                if tools_path.exists():
-                    files_created.append("tools.json")
                 if agents_path.exists():
                     files_created.append("agents.json")
                 if team_path.exists():

@@ -9,7 +9,6 @@ from agent_evo.loaders.json_loader import JSONLoader
 from agent_evo.llm.client import OpenAIClient, LLMClient
 from agent_evo.core.team_runner import TeamRunner
 from agent_evo.models.agent import Agent
-from agent_evo.models.tool import Tool
 from agent_evo.models.team import Team
 
 
@@ -34,7 +33,7 @@ class AgentEvoApp:
         """
         self.model = model
         self.output_dir = Path(output_dir)
-        self.ignored_files = set(ignored_files or ["agents.json", "tools.json", "team.json"])
+        self.ignored_files = set(ignored_files or ["agents.json", "team.json"])
         
         # Initialize LLM client
         if llm_client is None:
@@ -53,44 +52,35 @@ class AgentEvoApp:
         Load team configuration from a directory.
         
         Args:
-            directory: Path to directory containing tools.json, agents.json, team.json
+            directory: Path to directory containing agents.json and team.json
         
         Returns:
-            Dictionary with 'tools', 'agents', and 'team' keys
+            Dictionary with 'agents' and 'team' keys
         """
         dir_path = Path(directory)
         if not dir_path.exists():
             raise FileNotFoundError(f"Directory not found: {directory}")
-        print("LOAD TEAM", dir_path)
-        tools_path = dir_path / "tools.json"
+        
         agents_path = dir_path / "agents.json"
         team_path = dir_path / "team.json"
-        print(tools_path, agents_path, team_path)
+        
         # Check required files exist
         missing = []
-        if not tools_path.exists():
-            missing.append("tools.json")
         if not agents_path.exists():
             missing.append("agents.json")
         if not team_path.exists():
             missing.append("team.json")
-        print("MISSING ", [])
+        
         if missing:
-            print("MISSING CHECK TRUE")
             raise FileNotFoundError(
                 f"Missing required files in {directory}: {', '.join(missing)}"
             )
         
         # Load configurations
-        tools = JSONLoader.load_tools(str(tools_path))
-        print(tools)
         agents = JSONLoader.load_agents(str(agents_path))
-        print(agents)
         team = JSONLoader.load_team(str(team_path))
-        print(team)
 
         return {
-            "tools": tools,
             "agents": agents,
             "team": team
         }
@@ -104,7 +94,6 @@ class AgentEvoApp:
         team: Team,
         task: str,
         agents: Dict[str, Agent],
-        tools: Dict[str, Tool],
         max_rounds: int = 10,
         save_result: bool = True,
         output_dir: Optional[str] = None
@@ -116,7 +105,6 @@ class AgentEvoApp:
             team: Team configuration
             task: Task description
             agents: Dictionary of agents
-            tools: Dictionary of tools
             max_rounds: Maximum number of delegation rounds
             save_result: Whether to save result to output.json
             output_dir: Override output directory for this run
@@ -139,12 +127,11 @@ class AgentEvoApp:
         print(f"\nRunning team: {team.name}")
         print("=" * 60)
         
-        # Run the team
+        # Run the team (no tools parameter)
         result = team_runner.run_team(
             team=team,
             task=task,
             agents=agents,
-            tools=tools,
             max_rounds=max_rounds
         )
         
@@ -188,16 +175,14 @@ class AgentEvoApp:
         task = self.load_task(task_path)
         
         if verbose:
-            print(f"Loaded {len(config['tools'])} tools")
             print(f"Loaded {len(config['agents'])} agents")
             print(f"Task: {task[:100]}...")
         
-        # Run the team
+        # Run the team (no tools parameter)
         result = self.run_team(
             team=config['team'],
             task=task,
             agents=config['agents'],
-            tools=config['tools'],
             max_rounds=max_rounds,
             output_dir=output_dir
         )
@@ -227,24 +212,16 @@ class AgentEvoApp:
             "errors": [],
             "warnings": []
         }
-        print("VALIDATION", directory)
+        
         try:
             config = self.load_team_from_directory(directory)
-            print(config)
+            
             # Validate team structure
             try:
                 config['team'].validate()
             except Exception as e:
                 validation["valid"] = False
                 validation["errors"].append(f"Team validation error: {e}")
-            
-            # Check all agent tools exist
-            for agent_id, agent in config['agents'].items():
-                for tool_id in agent.tool_ids:
-                    if tool_id not in config['tools']:
-                        validation["warnings"].append(
-                            f"Agent {agent_id} references non-existent tool: {tool_id}"
-                        )
             
             # Check all team agents exist
             for agent_id in config['team'].agent_ids:

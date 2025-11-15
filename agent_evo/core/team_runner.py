@@ -23,7 +23,6 @@ class TeamRunner:
                  team: Team,
                  task: str,
                  agents: Dict[str, Agent],
-                 tools: Dict[str, Tool],
                  max_rounds: int = 10) -> Dict[str, Any]:
         """
         Run a team of agents on a task.
@@ -35,6 +34,7 @@ class TeamRunner:
         for agent_id in team.agent_ids:
             if agent_id not in agents:
                 raise ValueError(f"Agent {agent_id} not found")
+        
         
         # Maintain full chat history across all agents
         chat_history = []
@@ -60,11 +60,10 @@ class TeamRunner:
             # Get agents this agent can delegate to
             available_agents = team.get_neighbors(current_agent_id)
             
-            # Run the agent with full chat history
+            # Run the agent with full chat history (no tools parameter needed)
             result = self.agent_runner.run_agent(
                 agent=agent,
                 task=current_task,
-                tools=tools,
                 available_agents=available_agents,
                 chat_history=chat_history
             )

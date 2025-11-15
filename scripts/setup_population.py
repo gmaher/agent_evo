@@ -23,7 +23,7 @@ def main():
     parser.add_argument(
         "--builder-dir",
         required=True,
-        help="Directory containing builder team files"
+        help="Directory containing builder team files (agents.json and team.json)"
     )
     parser.add_argument(
         "--output-dir",
@@ -58,9 +58,14 @@ def main():
         if not tasks_folder.exists():
             raise FileNotFoundError(f"Template must contain /tasks folder: {tasks_folder}")
         
-        # Validate builder directory
+        # Validate builder directory has required files
         if not builder_dir.exists():
             raise FileNotFoundError(f"Builder directory not found: {builder_dir}")
+        
+        if not (builder_dir / "agents.json").exists():
+            raise FileNotFoundError(f"Builder directory must contain agents.json")
+        if not (builder_dir / "team.json").exists():
+            raise FileNotFoundError(f"Builder directory must contain team.json")
         
         # Create output directory
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -102,18 +107,20 @@ def main():
                 shutil.rmtree(pop_dir)
             shutil.copytree(template_dir, pop_dir)
             
-            # Path for generated team
+            # Path for generated team (agents.json and team.json will be created here)
             team_output_dir = pop_dir / "team"
             
             if args.verbose:
                 print(f"Team will be generated in: {team_output_dir}")
+                print(f"Expected output: agents.json, team.json")
             
             try:
                 # Initialize app for this population member
+                # Use empty ignored_files so builder can see all context
                 app = AgentEvoApp(
                     model=args.model,
                     output_dir=str(team_output_dir),
-                    ignored_files=[]  # Don't ignore any files for builder
+                    ignored_files=[]
                 )
                 
                 # Load builder team
@@ -121,6 +128,7 @@ def main():
                 
                 if args.verbose:
                     print(f"Loaded builder team: {builder_config['team'].name}")
+                    print(f"Builder has {len(builder_config['agents'])} agents")
                     print(f"Running builder with CREATE_FACTORY_TASK...")
                 
                 # Run builder team to create factory team
@@ -128,17 +136,19 @@ def main():
                     team=builder_config['team'],
                     task=CREATE_FACTORY_TASK,
                     agents=builder_config['agents'],
-                    tools=builder_config['tools'],
                     save_result=False  # Don't save output.json in team folder
                 )
                 
-                # Validate generated files
+                # Validate generated files (should have agents.json and team.json)
                 validation = app.validate_team_files(str(team_output_dir))
                 
                 success = validation["valid"] and len(validation["errors"]) == 0
                 
                 if success:
                     print(f"\n✓ Population member {i} created successfully")
+                    if args.verbose:
+                        print(f"  - agents.json: ✓")
+                        print(f"  - team.json: ✓")
                 else:
                     print(f"\n⚠ Population member {i} created with warnings:")
                     for error in validation["errors"]:
@@ -171,7 +181,6 @@ def main():
                 })
         
         # Save metadata
-
         metadata_path = output_dir / "population_metadata.json"
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
@@ -185,6 +194,7 @@ def main():
         print(f"Successfully created: {successful}/{args.population_size}")
         print(f"Failed: {args.population_size - successful}/{args.population_size}")
         print(f"\nMetadata saved to: {metadata_path}")
+        print(f"\nNote: Teams use predefined tools (no tools.json needed)")
         
         if successful < args.population_size:
             print(f"\n⚠ Warning: Not all population members were created successfully")
