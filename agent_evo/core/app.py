@@ -10,6 +10,7 @@ from agent_evo.loaders.json_loader import JSONLoader
 from agent_evo.llm.client import OpenAIClient, LLMClient
 from agent_evo.core.team_runner import TeamRunner
 from agent_evo.models.agent import Agent
+from agent_evo.models.results import TeamResult
 from agent_evo.models.team import Team
 
 
@@ -95,7 +96,7 @@ class AgentEvoApp:
         agents: Dict[str, Agent],
         max_rounds: int = 10,
         save_result: bool = True
-    ) -> Dict[str, Any]:
+    ) -> TeamResult:
         """
         Run a team on a task.
         
@@ -107,7 +108,7 @@ class AgentEvoApp:
             save_result: Whether to save result to filesystem
         
         Returns:
-            Execution result dictionary
+            TeamResult object
         """
         # Create team runner with filesystem
         team_runner = TeamRunner(
@@ -129,18 +130,16 @@ class AgentEvoApp:
         
         print(f"\nTeam execution completed in {result.rounds} rounds")
         
-        # Convert result to dictionary for serialization
-        result_dict = self._team_result_to_dict(result)
-        
         # Save result to filesystem if requested
         if save_result:
+            result_dict = self._team_result_to_dict(result)
             result_json = json.dumps(result_dict, indent=2, default=str)
             self.filesystem.write_file("output.json", result_json)
             print(f"\nResults saved to output.json in filesystem")
         
-        return result_dict
+        return result
     
-    def _team_result_to_dict(self, result) -> Dict[str, Any]:
+    def _team_result_to_dict(self, result:TeamResult) -> Dict[str, Any]:
         """Convert TeamResult to dictionary for serialization."""
         return {
             "team_id": result.team_id,
@@ -157,6 +156,8 @@ class AgentEvoApp:
                         "agent_id": entry.result.agent_id,
                         "agent_name": entry.result.agent_name,
                         "final_response": entry.result.final_response,
+                        "history": entry.result.history,  # Add this line
+                        "messages": entry.result.messages,  # Add this line
                         "iterations": entry.result.iterations,
                         "delegation": entry.result.delegation,
                         "finished": entry.result.finished
@@ -191,7 +192,7 @@ class AgentEvoApp:
         verbose: bool = False,
         context_dir: Optional[str] = None,
         exclude_patterns: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    ) -> TeamResult:
         """
         Load team from directory and run on task.
         
@@ -204,7 +205,7 @@ class AgentEvoApp:
             exclude_patterns: Patterns to exclude when loading context_dir
         
         Returns:
-            Execution result dictionary
+            TeamResult object
         """
         # Load initial context files if specified
         if context_dir:
@@ -241,7 +242,7 @@ class AgentEvoApp:
         # Print outputs
         if verbose:
             print("\nAgent outputs:")
-            for agent_id, output in result['agent_outputs'].items():
+            for agent_id, output in result.agent_outputs.items():
                 agent_name = config['agents'][agent_id].name
                 print(f"\n{agent_name}:")
                 print(output)
@@ -378,7 +379,7 @@ class AgentEvoApp:
         team: Team,
         agents: Dict[str, Agent],
         max_rounds: int = 10
-    ) -> Dict[str, Any]:
+    ) -> TeamResult:
         """
         Run a team on a project.
         
@@ -390,7 +391,7 @@ class AgentEvoApp:
             max_rounds: Maximum number of delegation rounds
         
         Returns:
-            Execution result dictionary
+            TeamResult object with modified_files attribute added
         """
         # Clear filesystem and load project files
         self.clear_filesystem()
@@ -408,8 +409,5 @@ class AgentEvoApp:
             max_rounds=max_rounds,
             save_result=True
         )
-        
-        # Include modified/created files in result
-        result["modified_files"] = self.get_filesystem_files()
         
         return result
