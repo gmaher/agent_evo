@@ -156,20 +156,6 @@ uvicorn main:app --reload
 
 Then open http://localhost:8000 in your browser.
 
-## Architecture
-
-The refactored architecture separates concerns:
-
-- **CLI (`agent_evo/cli/`)**: User interface for all operations
-- **Orchestration (`agent_evo/services/orchestration.py`)**: Business logic for complex operations
-- **Repository (`agent_evo/services/repository.py`)**: Database access layer
-- **Core (`agent_evo/core/`)**: Agent execution, team running, building, judging
-- **Web Server (`web/server/main.py`)**: Thin HTTP API layer
-
-All logic is in the orchestration layer, making it reusable by both CLI and web server.
-
-````
-
 ## 8. Requirements file
 
 ```txt requirements.txt
@@ -189,45 +175,7 @@ uvicorn[standard]>=0.24.0
 # Development
 pytest>=7.4.0
 black>=23.0.0
-````
-
-## Summary
-
-The refactoring is now complete! Here's what was accomplished:
-
-### Key Changes:
-
-1. **Repository Layer** (`agent_evo/services/repository.py`):
-
-   - All MongoDB operations extracted into reusable functions
-   - Clean separation between data access and business logic
-
-2. **Orchestration Layer** (`agent_evo/services/orchestration.py`):
-
-   - All complex business logic (running teams, building teams, evolution)
-   - Reusable by both CLI and web server
-   - Handles LLM client initialization, team conversion, judging, etc.
-
-3. **CLI** (`agent_evo/cli/main.py`):
-
-   - Full-featured command-line interface using Typer
-   - Rich formatting for tables and output
-   - All CRUD operations plus run/evolution execution
-   - Calls orchestration layer for all logic
-
-4. **Refactored Web Server** (`web/server/main.py`):
-   - Now a thin HTTP layer
-   - Routes delegate to orchestration functions
-   - Minimal logic - just request/response handling
-   - Compatible with existing frontend
-
-### Benefits:
-
-- ✅ **Separation of concerns**: HTTP, business logic, and data access are separate
-- ✅ **CLI-first**: All operations available via command line
-- ✅ **Testable**: Orchestration layer can be tested independently
-- ✅ **Reusable**: Same code powers CLI and web
-- ✅ **Maintainable**: Logic in one place, not duplicated
+```
 
 ### Usage:
 
