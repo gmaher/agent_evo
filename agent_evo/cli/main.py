@@ -50,10 +50,10 @@ def list_projects(username: str = typer.Option(..., help="Username")):
     
     for project in projects:
         table.add_row(
-            str(project["id"]),
-            project["name"],
-            project["description"][:50] + "..." if len(project["description"]) > 50 else project["description"],
-            str(len(project.get("files", [])))
+            str(project.id),
+            project.name,
+            project.description[:50] + "..." if len(project.description) > 50 else project.description,
+            str(len(project.files))
         )
     
     console.print(table)
@@ -71,13 +71,13 @@ def show_project(
         console.print(f"[red]Project {project_id} not found[/red]")
         raise typer.Exit(1)
     
-    console.print(f"\n[bold cyan]Project: {project['name']}[/bold cyan]")
-    console.print(f"[bold]ID:[/bold] {project['id']}")
-    console.print(f"[bold]Description:[/bold] {project['description']}")
-    console.print(f"\n[bold]Files ({len(project.get('files', []))}):[/bold]")
+    console.print(f"\n[bold cyan]Project: {project.name}[/bold cyan]")
+    console.print(f"[bold]ID:[/bold] {project.id}")
+    console.print(f"[bold]Description:[/bold] {project.description}")
+    console.print(f"\n[bold]Files ({len(project.files)}):[/bold]")
     
-    for file in project.get("files", []):
-        console.print(f"  • {file['filename']} ({len(file['content'])} bytes)")
+    for file in project.files:
+        console.print(f"  • {file.filename} ({len(file.content)} bytes)")
 
 
 @projects_app.command("create")
@@ -109,7 +109,7 @@ def create_project(
     
     project = repository.create_project(username, name, description, files)
     
-    console.print(f"[green]✓ Created project '{name}' with ID {project['id']}[/green]")
+    console.print(f"[green]✓ Created project '{name}' with ID {project.id}[/green]")
 
 
 @projects_app.command("delete")
@@ -151,11 +151,11 @@ def list_agents(username: str = typer.Option(..., help="Username")):
     
     for agent in agents:
         table.add_row(
-            agent["id"][:8] + "...",
-            agent["name"],
-            agent.get("model", "gpt-4o"),
-            str(agent.get("temperature", 1.0)),
-            str(len(agent.get("tool_names", [])))
+            agent.id[:8] + "...",
+            agent.name,
+            agent.model,
+            str(agent.temperature),
+            str(len(agent.tool_names))
         )
     
     console.print(table)
@@ -173,14 +173,14 @@ def show_agent(
         console.print(f"[red]Agent {agent_id} not found[/red]")
         raise typer.Exit(1)
     
-    console.print(f"\n[bold cyan]Agent: {agent['name']}[/bold cyan]")
-    console.print(f"[bold]ID:[/bold] {agent['id']}")
-    console.print(f"[bold]Model:[/bold] {agent.get('model', 'gpt-4o')}")
-    console.print(f"[bold]Temperature:[/bold] {agent.get('temperature', 1.0)}")
-    console.print(f"[bold]Max Retries:[/bold] {agent.get('max_retries', 3)}")
+    console.print(f"\n[bold cyan]Agent: {agent.name}[/bold cyan]")
+    console.print(f"[bold]ID:[/bold] {agent.id}")
+    console.print(f"[bold]Model:[/bold] {agent.model}")
+    console.print(f"[bold]Temperature:[/bold] {agent.temperature}")
+    console.print(f"[bold]Max Retries:[/bold] {agent.max_retries}")
     console.print(f"\n[bold]System Prompt:[/bold]")
-    console.print(agent["system_prompt"])
-    console.print(f"\n[bold]Tools:[/bold] {', '.join(agent.get('tool_names', []))}")
+    console.print(agent.system_prompt)
+    console.print(f"\n[bold]Tools:[/bold] {', '.join(agent.tool_names)}")
 
 
 # ===============
@@ -204,10 +204,10 @@ def list_teams(username: str = typer.Option(..., help="Username")):
     
     for team in teams:
         table.add_row(
-            team["id"][:8] + "...",
-            team["name"],
-            team["description"][:40] + "..." if len(team["description"]) > 40 else team["description"],
-            str(len(team.get("agent_ids", [])))
+            team.id[:8] + "...",
+            team.name,
+            team.description[:40] + "..." if len(team.description) > 40 else team.description,
+            str(len(team.agent_ids))
         )
     
     console.print(table)
@@ -225,24 +225,24 @@ def show_team(
         console.print(f"[red]Team {team_id} not found[/red]")
         raise typer.Exit(1)
     
-    console.print(f"\n[bold cyan]Team: {team['name']}[/bold cyan]")
-    console.print(f"[bold]ID:[/bold] {team['id']}")
-    console.print(f"[bold]Description:[/bold] {team['description']}")
-    console.print(f"[bold]Entry Point:[/bold] {team['entry_point']}")
+    console.print(f"\n[bold cyan]Team: {team.name}[/bold cyan]")
+    console.print(f"[bold]ID:[/bold] {team.id}")
+    console.print(f"[bold]Description:[/bold] {team.description}")
+    console.print(f"[bold]Entry Point:[/bold] {team.entry_point}")
     
     # Get agent details
-    agents = repository.get_agents_by_ids(username, team.get("agent_ids", []))
-    agent_map = {a["id"]: a["name"] for a in agents}
+    agents = repository.get_agents_by_ids(username, team.agent_ids)
+    agent_map = {a.id: a.name for a in agents}
     
     console.print(f"\n[bold]Agents ({len(agents)}):[/bold]")
     for agent in agents:
-        console.print(f"  • {agent['name']} ({agent['id'][:8]}...)")
+        console.print(f"  • {agent.name} ({agent.id[:8]}...)")
     
-    console.print(f"\n[bold]Edges ({len(team.get('edges', []))}):[/bold]")
-    for edge in team.get("edges", []):
-        from_name = agent_map.get(edge.get("from_agent") or edge.get("from"), "Unknown")
-        to_name = agent_map.get(edge.get("to_agent") or edge.get("to"), "Unknown")
-        desc = edge.get("description", "")
+    console.print(f"\n[bold]Edges ({len(team.edges)}):[/bold]")
+    for edge in team.edges:
+        from_name = agent_map.get(edge.from_agent, "Unknown")
+        to_name = agent_map.get(edge.to_agent, "Unknown")
+        desc = edge.description or ""
         console.print(f"  • {from_name} → {to_name}" + (f": {desc}" if desc else ""))
 
 
@@ -271,7 +271,6 @@ def build_team(
     except Exception as e:
         console.print(f"[red]Failed to build team: {e}[/red]")
         raise typer.Exit(1)
-
 
 # ==============
 # Run Commands
@@ -302,17 +301,16 @@ def list_runs(
             "completed": "green",
             "failed": "red",
             "running": "yellow"
-        }.get(run.get("status", ""), "white")
+        }.get(run.status, "white")
         
-        score = run.get("score")
-        score_str = f"{score:.2f}/10" if score is not None else "N/A"
+        score_str = f"{run.score:.2f}/10" if run.score is not None else "N/A"
         
         table.add_row(
-            run["id"][:8] + "...",
-            run.get("run_name", "Untitled"),
-            f"[{status_color}]{run.get('status', 'unknown')}[/{status_color}]",
+            run.id[:8] + "...",
+            run.run_name,
+            f"[{status_color}]{run.status}[/{status_color}]",
             score_str,
-            run.get("timestamp", "")[:19]
+            run.timestamp[:19]
         )
     
     console.print(table)
@@ -330,24 +328,23 @@ def show_run(
         console.print(f"[red]Run {run_id} not found[/red]")
         raise typer.Exit(1)
     
-    console.print(f"\n[bold cyan]Run: {run.get('run_name', 'Untitled')}[/bold cyan]")
-    console.print(f"[bold]ID:[/bold] {run['id']}")
-    console.print(f"[bold]Status:[/bold] {run.get('status', 'unknown')}")
-    console.print(f"[bold]Team ID:[/bold] {run.get('team_id', 'N/A')}")
-    console.print(f"[bold]Project ID:[/bold] {run.get('project_id', 'N/A')}")
-    console.print(f"[bold]Timestamp:[/bold] {run.get('timestamp', 'N/A')}")
+    console.print(f"\n[bold cyan]Run: {run.run_name}[/bold cyan]")
+    console.print(f"[bold]ID:[/bold] {run.id}")
+    console.print(f"[bold]Status:[/bold] {run.status}")
+    console.print(f"[bold]Team ID:[/bold] {run.team_id}")
+    console.print(f"[bold]Project ID:[/bold] {run.project_id}")
+    console.print(f"[bold]Timestamp:[/bold] {run.timestamp}")
     
-    if run.get("score") is not None:
-        console.print(f"[bold]Score:[/bold] {run['score']:.2f}/10")
-        if run.get("score_reasoning"):
-            console.print(f"[bold]Reasoning:[/bold] {run['score_reasoning']}")
+    if run.score is not None:
+        console.print(f"[bold]Score:[/bold] {run.score:.2f}/10")
+        if run.score_reasoning:
+            console.print(f"[bold]Reasoning:[/bold] {run.score_reasoning}")
     
-    result = run.get("result", {})
-    if result.get("error"):
-        console.print(f"\n[red]Error: {result['error']}[/red]")
-    elif result:
-        console.print(f"\n[bold]Rounds:[/bold] {result.get('rounds', 'N/A')}")
-        console.print(f"[bold]Modified Files:[/bold] {len(result.get('modified_files', {}))}")
+    if run.result.get("error"):
+        console.print(f"\n[red]Error: {run.result['error']}[/red]")
+    elif run.result:
+        console.print(f"\n[bold]Rounds:[/bold] {run.result.get('rounds', 'N/A')}")
+        console.print(f"[bold]Modified Files:[/bold] {len(run.result.get('modified_files', {}))}")
 
 
 @runs_app.command("create")
@@ -413,15 +410,15 @@ def list_evolutions(
             "completed": "green",
             "failed": "red",
             "generating": "yellow"
-        }.get(evo.get("status", ""), "white")
+        }.get(evo.status, "white")
         
         table.add_row(
-            evo["id"][:8] + "...",
-            str(evo.get("project_id", "N/A")),
-            f"[{status_color}]{evo.get('status', 'unknown')}[/{status_color}]",
-            str(evo.get("generation", 0)),
-            str(len(evo.get("team_ids", []))),
-            evo.get("timestamp", "")[:19]
+            evo.id[:8] + "...",
+            str(evo.project_id),
+            f"[{status_color}]{evo.status}[/{status_color}]",
+            str(evo.generation),
+            str(len(evo.team_ids)),
+            evo.timestamp[:19]
         )
     
     console.print(table)
@@ -440,29 +437,27 @@ def show_evolution(
         raise typer.Exit(1)
     
     console.print(f"\n[bold cyan]Evolution[/bold cyan]")
-    console.print(f"[bold]ID:[/bold] {evolution['id']}")
-    console.print(f"[bold]Project ID:[/bold] {evolution.get('project_id', 'N/A')}")
-    console.print(f"[bold]Status:[/bold] {evolution.get('status', 'unknown')}")
-    console.print(f"[bold]Generation:[/bold] {evolution.get('generation', 0)}")
-    console.print(f"[bold]Max Rounds:[/bold] {evolution.get('max_rounds', 'N/A')}")
-    console.print(f"[bold]K (initial teams):[/bold] {evolution.get('K', 'N/A')}")
-    console.print(f"[bold]Teams Created:[/bold] {len(evolution.get('team_ids', []))}")
-    console.print(f"[bold]Runs:[/bold] {len(evolution.get('run_ids', []))}")
-    console.print(f"[bold]Timestamp:[/bold] {evolution.get('timestamp', 'N/A')}")
+    console.print(f"[bold]ID:[/bold] {evolution.id}")
+    console.print(f"[bold]Project ID:[/bold] {evolution.project_id}")
+    console.print(f"[bold]Status:[/bold] {evolution.status}")
+    console.print(f"[bold]Generation:[/bold] {evolution.generation}")
+    console.print(f"[bold]Max Rounds:[/bold] {evolution.max_rounds}")
+    console.print(f"[bold]K (initial teams):[/bold] {evolution.K}")
+    console.print(f"[bold]Teams Created:[/bold] {len(evolution.team_ids)}")
+    console.print(f"[bold]Runs:[/bold] {len(evolution.run_ids)}")
+    console.print(f"[bold]Timestamp:[/bold] {evolution.timestamp}")
     
     # Show top scoring runs
-    run_ids = evolution.get("run_ids", [])
-    if run_ids:
-        runs = [repository.get_run(username, rid) for rid in run_ids]
-        runs = [r for r in runs if r and r.get("score") is not None]
-        runs.sort(key=lambda x: x.get("score", 0), reverse=True)
+    if evolution.run_ids:
+        runs = [repository.get_run(username, rid) for rid in evolution.run_ids]
+        runs = [r for r in runs if r and r.score is not None]
+        runs.sort(key=lambda x: x.score, reverse=True)
         
         console.print(f"\n[bold]Top 5 Runs:[/bold]")
         for i, run in enumerate(runs[:5], 1):
-            team = repository.get_team(username, run.get("team_id", ""))
-            team_name = team.get("name", "Unknown") if team else "Unknown"
-            console.print(f"  {i}. {team_name}: {run['score']:.2f}/10")
-
+            team = repository.get_team(username, run.team_id)
+            team_name = team.name if team else "Unknown"
+            console.print(f"  {i}. {team_name}: {run.score:.2f}/10")
 
 @evolutions_app.command("create")
 def create_evolution(
@@ -486,9 +481,9 @@ def create_evolution(
         )
         
         console.print(f"\n[green]✓ Evolution completed[/green]")
-        console.print(f"[bold]Evolution ID:[/bold] {evolution['id']}")
-        console.print(f"[bold]Teams Created:[/bold] {len(evolution['team_ids'])}")
-        console.print(f"[bold]Generations:[/bold] {evolution['generation'] + 1}")
+        console.print(f"[bold]Evolution ID:[/bold] {evolution.id}")
+        console.print(f"[bold]Teams Created:[/bold] {len(evolution.team_ids)}")
+        console.print(f"[bold]Generations:[/bold] {evolution.generation + 1}")
         
     except Exception as e:
         console.print(f"[red]Evolution failed: {e}[/red]")
